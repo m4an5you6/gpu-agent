@@ -12515,6 +12515,18 @@ Examples:
     # config check
     config_subparsers.add_parser("check", help="Check for missing/outdated config")
 
+    # config validate (gpucloud.yaml — ML cluster config, not config.yaml)
+    config_validate = config_subparsers.add_parser(
+        "validate",
+        help="Validate gpucloud.yaml (cluster / dataset / model)",
+    )
+    config_validate.add_argument(
+        "--file",
+        "-f",
+        dest="gpucloud_config_file",
+        help="Path to gpucloud.yaml (default: auto-discover)",
+    )
+
     # config migrate
     config_subparsers.add_parser("migrate", help="Update config with new options")
 

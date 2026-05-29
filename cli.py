@@ -9290,8 +9290,9 @@ class HermesCLI:
         )
         # Kick the loop off immediately so the user doesn't have to send a
         # separate message after setting the goal.
+        kickoff = mgr.initial_user_message() or state.goal
         try:
-            self._pending_input.put(state.goal)
+            self._pending_input.put(kickoff)
         except Exception:
             pass
 

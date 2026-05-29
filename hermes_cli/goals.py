@@ -489,6 +489,8 @@ class GoalManager:
         self.session_id = session_id
         self.default_max_turns = int(default_max_turns or DEFAULT_MAX_TURNS)
         self._state: Optional[GoalState] = load_goal(session_id)
+        # GPUCLOUD yaml context — set only via set() after /goal; never at init.
+        self._gpucloud_context: Optional[str] = None
 
     # --- introspection ------------------------------------------------
 
@@ -523,6 +525,7 @@ class GoalManager:
         goal = (goal or "").strip()
         if not goal:
             raise ValueError("goal text is empty")
+        self._load_gpucloud_context_for_goal()
         state = GoalState(
             goal=goal,
             status="active",
@@ -546,6 +549,7 @@ class GoalManager:
     def resume(self, *, reset_budget: bool = True) -> Optional[GoalState]:
         if not self._state:
             return None
+        self._load_gpucloud_context_for_goal()
         self._state.status = "active"
         self._state.paused_reason = None
         if reset_budget:
@@ -559,6 +563,34 @@ class GoalManager:
         self._state.status = "cleared"
         save_goal(self.session_id, self._state)
         self._state = None
+        self._gpucloud_context = None
+
+    def _load_gpucloud_context_for_goal(self) -> None:
+        """Load gpucloud.yaml — only when starting a /goal (phase 4)."""
+        from hermes_cli.gpucloud_config import (
+            GpucloudConfigError,
+            load_gpucloud_for_goal,
+        )
+
+        try:
+            prepared = load_gpucloud_for_goal()
+        except GpucloudConfigError as exc:
+            if exc.errors:
+                detail = "; ".join(exc.errors)
+                raise ValueError(f"gpucloud.yaml: {detail}") from exc
+            raise ValueError(str(exc)) from exc
+        self._gpucloud_context = prepared.context_block_for_goal()
+
+    def _wrap_goal_message(self, message: str) -> str:
+        if not self._gpucloud_context:
+            return message
+        return f"{self._gpucloud_context}\n\n{message}"
+
+    def initial_user_message(self) -> Optional[str]:
+        """First user turn after /goal — includes GPUCLOUD config context."""
+        if not self._state or self._state.status != "active":
+            return None
+        return self._wrap_goal_message(self._state.goal)
 
     def mark_done(self, reason: str) -> None:
         if not self._state:
@@ -740,11 +772,13 @@ class GoalManager:
         if not self._state or self._state.status != "active":
             return None
         if self._state.subgoals:
-            return CONTINUATION_PROMPT_WITH_SUBGOALS_TEMPLATE.format(
+            base = CONTINUATION_PROMPT_WITH_SUBGOALS_TEMPLATE.format(
                 goal=self._state.goal,
                 subgoals_block=self._state.render_subgoals_block(),
             )
-        return CONTINUATION_PROMPT_TEMPLATE.format(goal=self._state.goal)
+        else:
+            base = CONTINUATION_PROMPT_TEMPLATE.format(goal=self._state.goal)
+        return self._wrap_goal_message(base)
 
 
 __all__ = [

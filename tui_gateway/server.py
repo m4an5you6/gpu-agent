@@ -5142,9 +5142,10 @@ def _(rid, params: dict) -> dict:
         # {type: send, notice, message} → renders `notice` as a sys line,
         # then submits `message` as a user turn. The post-turn judge
         # wired in _run_prompt_submit takes over from there.
+        kickoff = mgr.initial_user_message() or state.goal
         return _ok(
             rid,
-            {"type": "send", "notice": notice, "message": state.goal},
+            {"type": "send", "notice": notice, "message": kickoff},
         )
 
     if name in {"snapshot", "snap"}:

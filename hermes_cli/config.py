@@ -5359,6 +5359,12 @@ def config_command(args):
         
         print()
     
+    elif subcmd == "validate":
+        from hermes_cli.gpucloud_config import run_config_validate
+
+        explicit = getattr(args, "gpucloud_config_file", None)
+        sys.exit(run_config_validate(explicit))
+
     elif subcmd == "check":
         # Non-interactive check for what's missing
         print()
