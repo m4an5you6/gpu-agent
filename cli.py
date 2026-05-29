@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Hermes Agent CLI - Interactive Terminal Interface
+GPUCLOUD Agent CLI - Interactive Terminal Interface
 
-A beautiful command-line interface for the Hermes Agent, inspired by Claude Code.
+A blue command-line interface for GPUCLOUD Agent, focused on ML operations.
 Features ASCII art branding, interactive REPL, toolset selection, and rich formatting.
 
 Usage:
@@ -1454,14 +1454,14 @@ def _prune_orphaned_branches(repo_root: str) -> None:
 # ============================================================================
 
 # Color palette (hex colors for Rich markup):
-# - Gold: #FFD700 (headers, highlights)
-# - Amber: #FFBF00 (secondary highlights)
-# - Bronze: #CD7F32 (tertiary elements)
-# - Light: #FFF8DC (text)
-# - Dim: #B8860B (muted text)
+# - Primary blue: #2563EB
+# - Highlight blue: #38BDF8
+# - Success teal: #14B8A6
+# - Text: #E5E7EB
+# - Dim: #94A3B8
 
 # ANSI building blocks for conversation display
-_ACCENT_ANSI_DEFAULT = "\033[1;38;2;255;215;0m"  # True-color #FFD700 bold — fallback
+_ACCENT_ANSI_DEFAULT = "\033[1;38;2;56;189;248m"  # True-color #38BDF8 bold fallback
 _BOLD = "\033[1m"
 _RST = "\033[0m"
 _STREAM_PAD = "    "  # 4-space indent for streamed response text (matches Panel padding)
@@ -1765,7 +1765,7 @@ class _SkinAwareAnsi:
         self._cached = None
 
 
-_ACCENT = _SkinAwareAnsi("response_border", "#FFD700", bold=True)
+_ACCENT = _SkinAwareAnsi("response_border", "#38BDF8", bold=True)
 # Use ANSI dim+italic attributes (\x1b[2;3m) instead of a hardcoded
 # hex color so dim/thinking text inherits the terminal's default
 # foreground color and stays readable in both light and dark
@@ -1778,9 +1778,9 @@ def _accent_hex() -> str:
     """Return the active skin accent color for legacy CLI output lines."""
     try:
         from hermes_cli.skin_engine import get_active_skin
-        return get_active_skin().get_color("ui_accent", "#FFBF00")
+        return get_active_skin().get_color("ui_accent", "#38BDF8")
     except Exception:
-        return "#FFBF00"
+        return "#38BDF8"
 
 
 def _rich_text_from_ansi(text: str) -> _RichText:
@@ -2653,30 +2653,21 @@ class ChatConsole:
         """
         yield self
 
-# ASCII Art - HERMES-AGENT logo (full width, single line - requires ~95 char terminal)
-HERMES_AGENT_LOGO = """[bold #FFD700]██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗[/]
-[bold #FFD700]██║  ██║██╔════╝██╔══██╗████╗ ████║██╔════╝██╔════╝      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝[/]
-[#FFBF00]███████║█████╗  ██████╔╝██╔████╔██║█████╗  ███████╗█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║[/]
-[#FFBF00]██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══╝  ╚════██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║[/]
-[#CD7F32]██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║[/]
-[#CD7F32]╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝[/]"""
+# ASCII Art - GPUCLOUD logo (full width, single line - requires ~95 char terminal)
+HERMES_AGENT_LOGO = """[bold #38BDF8] ██████╗ ██████╗ ██╗   ██╗ ██████╗██╗      ██████╗ ██╗   ██╗██████╗ [/]
+[#2563EB]██╔════╝ ██╔══██╗██║   ██║██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗[/]
+[#2563EB]██║  ███╗██████╔╝██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║[/]
+[#38BDF8]██║   ██║██╔═══╝ ██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║[/]
+[#14B8A6]╚██████╔╝██║     ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝[/]
+[#14B8A6] ╚═════╝ ╚═╝      ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝ [/]
+[dim #94A3B8]                    GPUCLOUD AGENT[/]"""
 
-# ASCII Art - Hermes Caduceus (compact, fits in left panel)
-HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀[/]
-[#FFBF00]⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]"""
+# ASCII Art - GPUCLOUD compact hero (fits in left panel)
+HERMES_CADUCEUS = """[bold #38BDF8]      .-------- GPUCLOUD --------.[/]
+[#2563EB]   .------.     SSH GPU Cluster     .------.[/]
+[#38BDF8]  /  GPU  \\==== TRAIN / INFER ==== /  GPU  \\[/]
+[#14B8A6]  \\______/     CUDA · NCCL · vLLM   \\______/[/]
+[dim #94A3B8]        YAML driven remote ML operations[/]"""
 
 
 
@@ -2689,23 +2680,23 @@ def _build_compact_banner() -> str:
         _skin = None
 
     skin_name = getattr(_skin, "name", "default") if _skin else "default"
-    border_color = _skin.get_color("banner_border", "#FFD700") if _skin else "#FFD700"
-    title_color = _skin.get_color("banner_title", "#FFBF00") if _skin else "#FFBF00"
-    dim_color = _skin.get_color("banner_dim", "#B8860B") if _skin else "#B8860B"
+    border_color = _skin.get_color("banner_border", "#2563EB") if _skin else "#2563EB"
+    title_color = _skin.get_color("banner_title", "#38BDF8") if _skin else "#38BDF8"
+    dim_color = _skin.get_color("banner_dim", "#94A3B8") if _skin else "#94A3B8"
 
     if skin_name == "default":
-        line1 = "⚕ NOUS HERMES - AI Agent Framework"
-        tiny_line = "⚕ NOUS HERMES"
+        line1 = "GPUCLOUD Agent - SSH GPU Training and Inference"
+        tiny_line = "GPUCLOUD"
     else:
-        agent_name = _skin.get_branding("agent_name", "Hermes Agent") if _skin else "Hermes Agent"
-        line1 = f"{agent_name} - AI Agent Framework"
+        agent_name = _skin.get_branding("agent_name", "GPUCLOUD Agent") if _skin else "GPUCLOUD Agent"
+        line1 = f"{agent_name} - SSH GPU Training and Inference"
         tiny_line = agent_name
 
     if os.environ.get("HERMES_FAST_STARTUP_BANNER") == "1":
         from hermes_cli import __release_date__ as _release_date
         from hermes_cli import __version__ as _version
 
-        version_line = f"Hermes Agent v{_version} ({_release_date})"
+        version_line = f"GPUCLOUD Agent v{_version} ({_release_date})"
     else:
         version_line = format_banner_version_label()
 
@@ -2882,7 +2873,7 @@ def save_config_value(key_path: str, value: any) -> bool:
 
 class HermesCLI:
     """
-    Interactive CLI for the Hermes Agent.
+    Interactive CLI for GPUCLOUD Agent.
     
     Provides a REPL interface with rich formatting, command history,
     and tool execution capabilities.
@@ -2904,7 +2895,7 @@ class HermesCLI:
         ignore_rules: bool = False,
     ):
         """
-        Initialize the Hermes CLI.
+        Initialize the GPUCLOUD CLI.
 
         Args:
             model: Model to use (default: from env or claude-sonnet)
@@ -3814,7 +3805,7 @@ class HermesCLI:
 
             if width < 52:
                 frags = [
-                    ("class:status-bar", " ⚕ "),
+                    ("class:status-bar", " GPU "),
                     ("class:status-bar-strong", snapshot["model_short"]),
                     ("class:status-bar-dim", " · "),
                     ("class:status-bar-dim", duration_label),
@@ -3831,7 +3822,7 @@ class HermesCLI:
                     bg_count = snapshot.get("active_background_tasks", 0)
                     bg_proc_count = snapshot.get("active_background_processes", 0)
                     frags = [
-                        ("class:status-bar", " ⚕ "),
+                        ("class:status-bar", " GPU "),
                         ("class:status-bar-strong", snapshot["model_short"]),
                         ("class:status-bar-dim", " · "),
                         (self._status_bar_context_style(percent), percent_label),
@@ -3866,7 +3857,7 @@ class HermesCLI:
                     bg_count = snapshot.get("active_background_tasks", 0)
                     bg_proc_count = snapshot.get("active_background_processes", 0)
                     frags = [
-                        ("class:status-bar", " ⚕ "),
+                        ("class:status-bar", " GPU "),
                         ("class:status-bar-strong", snapshot["model_short"]),
                         ("class:status-bar-dim", " │ "),
                         ("class:status-bar-dim", context_label),
@@ -4395,11 +4386,11 @@ class HermesCLI:
             try:
                 from hermes_cli.skin_engine import get_active_skin
                 _skin = get_active_skin()
-                label = _skin.get_branding("response_label", "⚕ Hermes")
-                _text_hex = _skin.get_color("banner_text", "#FFF8DC")
+                label = _skin.get_branding("response_label", "GPUCLOUD")
+                _text_hex = _skin.get_color("banner_text", "#E5E7EB")
             except Exception:
-                label = "⚕ Hermes"
-                _text_hex = "#FFF8DC"
+                label = "GPUCLOUD"
+                _text_hex = "#E5E7EB"
             # Build a true-color ANSI escape for the response text color
             # so streamed content matches the Rich Panel appearance.
             try:
@@ -5126,7 +5117,7 @@ class HermesCLI:
             self._console_print()
             self._console_print(
                 "[bold yellow]⚠  Nous Research Hermes 3 & 4 models are NOT agentic and are not "
-                "designed for use with Hermes Agent.[/]"
+                "designed for use with GPUCLOUD Agent.[/]"
             )
             self._console_print(
                 "[dim]   They lack tool-calling capabilities required for agent workflows. "
@@ -5357,13 +5348,13 @@ class HermesCLI:
                     lines.append(f"         {ml}\n", style="dim")
             elif role == "assistant_last":
                 # Last assistant response shown in full, non-dim
-                lines.append("  ◆ Hermes: ", style=f"bold {_assistant_label_c}")
+                lines.append("  ◆ GPUCLOUD: ", style=f"bold {_assistant_label_c}")
                 msg_lines = text.splitlines()
                 lines.append(msg_lines[0] + "\n", style="")
                 for ml in msg_lines[1:]:
                     lines.append(f"            {ml}\n", style="")
             else:
-                lines.append("  ◆ Hermes: ", style=f"dim bold {_assistant_label_c}")
+                lines.append("  ◆ GPUCLOUD: ", style=f"dim bold {_assistant_label_c}")
                 msg_lines = text.splitlines()
                 lines.append(msg_lines[0] + "\n", style="dim")
                 for ml in msg_lines[1:]:
@@ -5955,7 +5946,7 @@ class HermesCLI:
         is_running = bool(getattr(self, "_agent_running", False))
 
         lines = [
-            "Hermes CLI Status",
+            "GPUCLOUD CLI Status",
             "",
             f"Session ID: {self.session_id}",
             f"Path: {display_hermes_home()}",
@@ -6009,10 +6000,10 @@ class HermesCLI:
 
         try:
             from hermes_cli.skin_engine import get_active_help_header
-            header = get_active_help_header("(^_^)? Available Commands")
+            header = get_active_help_header("GPUCLOUD Commands")
         except Exception:
-            header = "(^_^)? Available Commands"
-        header = (header or "").strip() or "(^_^)? Available Commands"
+            header = "GPUCLOUD Commands"
+        header = (header or "").strip() or "GPUCLOUD Commands"
         inner_width = 55
         if len(header) > inner_width:
             header = header[:inner_width]
@@ -8897,13 +8888,13 @@ class HermesCLI:
                     try:
                         from hermes_cli.skin_engine import get_active_skin
                         _skin = get_active_skin()
-                        label = _skin.get_branding("response_label", "⚕ Hermes")
-                        _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#CD7F32"))
-                        _resp_text = _maybe_remap_for_light_mode(_skin.get_color("banner_text", "#FFF8DC"))
+                        label = _skin.get_branding("response_label", "GPUCLOUD")
+                        _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#38BDF8"))
+                        _resp_text = _maybe_remap_for_light_mode(_skin.get_color("banner_text", "#E5E7EB"))
                     except Exception:
-                        label = "⚕ Hermes"
-                        _resp_color = "#CD7F32"
-                        _resp_text = "#FFF8DC"
+                        label = "GPUCLOUD"
+                        _resp_color = "#38BDF8"
+                        _resp_text = "#E5E7EB"
 
                     _chat_console = ChatConsole()
                     _chat_console.print(Panel(
@@ -9775,7 +9766,7 @@ class HermesCLI:
             _cprint(f"  {_ACCENT}✓ Reasoning effort set to '{arg}' (session only){_RST}")
 
     def _handle_busy_command(self, cmd: str):
-        """Handle /busy — control what Enter does while Hermes is working.
+        """Handle /busy — control what Enter does while GPUCLOUD is working.
 
         Usage:
             /busy               Show current busy input mode
@@ -9806,11 +9797,11 @@ class HermesCLI:
         self.busy_input_mode = arg
         if save_config_value("display.busy_input_mode", arg):
             if arg == "queue":
-                behavior = "Enter will queue follow-up input while Hermes is busy."
+                behavior = "Enter will queue follow-up input while GPUCLOUD is busy."
             elif arg == "steer":
                 behavior = "Enter will steer your message into the current run (after the next tool call)."
             else:
-                behavior = "Enter will interrupt the current run while Hermes is busy."
+                behavior = "Enter will interrupt the current run while GPUCLOUD is busy."
             _cprint(f"  {_ACCENT}✓ Busy input mode set to '{arg}' (saved to config){_RST}")
             _cprint(f"  {_DIM}{behavior}{_RST}")
         else:
@@ -9975,7 +9966,7 @@ class HermesCLI:
         run_debug_share(args)
 
     def _handle_update_command(self) -> bool:
-        """Handle /update — update Hermes Agent to the latest version.
+        """Handle /update — update GPUCLOUD Agent to the latest version.
 
         In the classic CLI this exits the session and relaunches as
         ``hermes update`` so the user sees update output directly and gets
@@ -9989,7 +9980,7 @@ class HermesCLI:
         from hermes_cli.config import is_managed, format_managed_message
 
         if is_managed():
-            print(f"  ✗ {format_managed_message('update Hermes Agent')}")
+            print(f"  ✗ {format_managed_message('update GPUCLOUD Agent')}")
             return False
 
         # Use the prompt_toolkit-native modal so the confirmation panel
@@ -9997,11 +9988,11 @@ class HermesCLI:
         # with the prompt_toolkit event loop (same pattern as
         # _confirm_destructive_slash).
         choices = [
-            ("once", "Update Now", "exit the current session and update Hermes Agent"),
+            ("once", "Update Now", "exit the current session and update GPUCLOUD Agent"),
             ("cancel", "Cancel", "keep the current session"),
         ]
         raw = self._prompt_text_input_modal(
-            title="⚕  Update Hermes Agent",
+            title="GPUCLOUD Update",
             detail="This will exit the current session and run `hermes update`.",
             choices=choices,
         )
@@ -12132,13 +12123,13 @@ class HermesCLI:
                 try:
                     from hermes_cli.skin_engine import get_active_skin
                     _skin = get_active_skin()
-                    label = _skin.get_branding("response_label", "⚕ Hermes")
-                    _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#CD7F32"))
-                    _resp_text = _maybe_remap_for_light_mode(_skin.get_color("banner_text", "#FFF8DC"))
+                    label = _skin.get_branding("response_label", "GPUCLOUD")
+                    _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#38BDF8"))
+                    _resp_text = _maybe_remap_for_light_mode(_skin.get_color("banner_text", "#E5E7EB"))
                 except Exception:
-                    label = "⚕ Hermes"
-                    _resp_color = _maybe_remap_for_light_mode("#CD7F32")
-                    _resp_text = _maybe_remap_for_light_mode("#FFF8DC")
+                    label = "GPUCLOUD"
+                    _resp_color = _maybe_remap_for_light_mode("#38BDF8")
+                    _resp_text = _maybe_remap_for_light_mode("#E5E7EB")
 
                 is_error_response = result and (result.get("failed") or result.get("partial"))
                 already_streamed = self._stream_started and self._stream_box_opened and not is_error_response
@@ -12289,9 +12280,9 @@ class HermesCLI:
         else:
             try:
                 from hermes_cli.skin_engine import get_active_goodbye
-                goodbye = get_active_goodbye("Goodbye! ⚕")
+                goodbye = get_active_goodbye("Goodbye from GPUCLOUD.")
             except Exception:
-                goodbye = "Goodbye! ⚕"
+                goodbye = "Goodbye from GPUCLOUD."
             print(goodbye)
 
     def _get_tui_prompt_symbols(self) -> tuple[str, str]:
@@ -12306,9 +12297,9 @@ class HermesCLI:
         """
         try:
             from hermes_cli.skin_engine import get_active_prompt_symbol
-            symbol = get_active_prompt_symbol("❯ ")
+            symbol = get_active_prompt_symbol("GPUCLOUD > ")
         except Exception:
-            symbol = "❯ "
+            symbol = "GPUCLOUD > "
 
         symbol = (symbol or "❯ ").rstrip() + " "
 
@@ -12322,7 +12313,7 @@ class HermesCLI:
             pass
         stripped = symbol.rstrip()
         if not stripped:
-            return "❯ ", "❯ "
+            return "GPUCLOUD > ", "> "
 
         parts = stripped.split()
         candidate = parts[-1] if parts else ""
@@ -12380,7 +12371,7 @@ class HermesCLI:
         if self._command_running:
             return _state_fragment("class:prompt-working", self._command_spinner_frame())
         if self._agent_running:
-            return _state_fragment("class:prompt-working", "⚕")
+            return _state_fragment("class:prompt-working", "GPU")
         if self._voice_mode:
             return _state_fragment("class:voice-prompt", "🎤")
         return [("class:prompt", symbol)]
@@ -12548,11 +12539,11 @@ class HermesCLI:
         try:
             from hermes_cli.skin_engine import get_active_skin
             _welcome_skin = get_active_skin()
-            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to Hermes Agent! Type your message or /help for commands.")
-            _welcome_color = _welcome_skin.get_color("banner_text", "#FFF8DC")
+            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to GPUCLOUD Agent! Type your message or /help for commands.")
+            _welcome_color = _welcome_skin.get_color("banner_text", "#E5E7EB")
         except Exception:
-            _welcome_text = "Welcome to Hermes Agent! Type your message or /help for commands."
-            _welcome_color = "#FFF8DC"
+            _welcome_text = "Welcome to GPUCLOUD Agent! Type your message or /help for commands."
+            _welcome_color = "#E5E7EB"
         self._console_print(f"[{_welcome_color}]{_welcome_text}[/]")
 
         # Redaction opt-out warning (#17691): ON by default, loud when off.
@@ -13351,7 +13342,7 @@ class HermesCLI:
             import signal as _sig
             from prompt_toolkit.application import run_in_terminal
             from hermes_cli.skin_engine import get_active_skin
-            agent_name = get_active_skin().get_branding("agent_name", "Hermes Agent")
+            agent_name = get_active_skin().get_branding("agent_name", "GPUCLOUD Agent")
             msg = f"\n{agent_name} has been suspended. Run `fg` to bring {agent_name} back."
             def _suspend():
                 os.write(1, msg.encode())
@@ -14280,53 +14271,53 @@ class HermesCLI:
             # color schemes.  (Hardcoding a near-white #FFF8DC made
             # input invisible on light backgrounds.)
             'input-area': '',
-            'placeholder': '#888888 italic',
-            'prompt': '',
-            'prompt-working': '#888888 italic',
-            'hint': '#888888 italic',
-            'status-bar': 'bg:#1a1a2e #C0C0C0',
-            'status-bar-strong': 'bg:#1a1a2e #FFD700 bold',
-            'status-bar-dim': 'bg:#1a1a2e #8B8682',
-            'status-bar-good': 'bg:#1a1a2e #8FBC8F bold',
-            'status-bar-warn': 'bg:#1a1a2e #FFD700 bold',
-            'status-bar-bad': 'bg:#1a1a2e #FF8C00 bold',
-            'status-bar-critical': 'bg:#1a1a2e #FF6B6B bold',
-            'status-bar-yolo': 'bg:#1a1a2e #FF4444 bold',
-            # Bronze horizontal rules around the input area
-            'input-rule': '#CD7F32',
+            'placeholder': '#94A3B8 italic',
+            'prompt': '#38BDF8 bold',
+            'prompt-working': '#94A3B8 italic',
+            'hint': '#94A3B8 italic',
+            'status-bar': 'bg:#0B1220 #E5E7EB',
+            'status-bar-strong': 'bg:#0B1220 #38BDF8 bold',
+            'status-bar-dim': 'bg:#0B1220 #94A3B8',
+            'status-bar-good': 'bg:#0B1220 #14B8A6 bold',
+            'status-bar-warn': 'bg:#0B1220 #F59E0B bold',
+            'status-bar-bad': 'bg:#0B1220 #F59E0B bold',
+            'status-bar-critical': 'bg:#0B1220 #EF4444 bold',
+            'status-bar-yolo': 'bg:#0B1220 #EF4444 bold',
+            # Blue horizontal rules around the input area
+            'input-rule': '#2563EB',
             # Clipboard image attachment badges
-            'image-badge': '#87CEEB bold',
-            'completion-menu': 'bg:#1a1a2e #FFF8DC',
-            'completion-menu.completion': 'bg:#1a1a2e #FFF8DC',
-            'completion-menu.completion.current': 'bg:#333355 #FFD700',
-            'completion-menu.meta.completion': 'bg:#1a1a2e #888888',
-            'completion-menu.meta.completion.current': 'bg:#333355 #FFBF00',
+            'image-badge': '#38BDF8 bold',
+            'completion-menu': 'bg:#0B1220 #E5E7EB',
+            'completion-menu.completion': 'bg:#0B1220 #E5E7EB',
+            'completion-menu.completion.current': 'bg:#1E3A8A #38BDF8',
+            'completion-menu.meta.completion': 'bg:#111827 #94A3B8',
+            'completion-menu.meta.completion.current': 'bg:#1D4ED8 #14B8A6',
             # Clarify question panel
-            'clarify-border': '#CD7F32',
-            'clarify-title': '#FFD700 bold',
-            'clarify-question': '#FFF8DC bold',
-            'clarify-choice': '#AAAAAA',
-            'clarify-selected': '#FFD700 bold',
-            'clarify-active-other': '#FFD700 italic',
-            'clarify-countdown': '#CD7F32',
+            'clarify-border': '#2563EB',
+            'clarify-title': '#38BDF8 bold',
+            'clarify-question': '#E5E7EB bold',
+            'clarify-choice': '#94A3B8',
+            'clarify-selected': '#38BDF8 bold',
+            'clarify-active-other': '#38BDF8 italic',
+            'clarify-countdown': '#2563EB',
             # Sudo password panel
             'sudo-prompt': '#FF6B6B bold',
-            'sudo-border': '#CD7F32',
+            'sudo-border': '#2563EB',
             'sudo-title': '#FF6B6B bold',
-            'sudo-text': '#FFF8DC',
+            'sudo-text': '#E5E7EB',
             # Dangerous command approval panel
-            'approval-border': '#CD7F32',
+            'approval-border': '#2563EB',
             'approval-title': '#FF8C00 bold',
-            'approval-desc': '#FFF8DC bold',
-            'approval-cmd': '#AAAAAA italic',
-            'approval-choice': '#AAAAAA',
-            'approval-selected': '#FFD700 bold',
+            'approval-desc': '#E5E7EB bold',
+            'approval-cmd': '#94A3B8 italic',
+            'approval-choice': '#94A3B8',
+            'approval-selected': '#38BDF8 bold',
             # Voice mode
-            'voice-prompt': '#87CEEB',
+            'voice-prompt': '#38BDF8',
             'voice-recording': '#FF4444 bold',
             'voice-processing': '#FFA500 italic',
-            'voice-status': 'bg:#1a1a2e #87CEEB',
-            'voice-status-recording': 'bg:#1a1a2e #FF4444 bold',
+            'voice-status': 'bg:#0B1220 #38BDF8',
+            'voice-status-recording': 'bg:#0B1220 #EF4444 bold',
         }
         style = PTStyle.from_dict(self._build_tui_style_dict())
         
@@ -14895,7 +14886,7 @@ def main(
     ignore_rules: bool = False,
 ):
     """
-    Hermes Agent CLI - Interactive AI Assistant
+    GPUCLOUD Agent CLI - Interactive AI Assistant
     
     Args:
         query: Single query to execute (then exit). Alias: -q
@@ -14946,7 +14937,7 @@ def main(
     if gateway:
         import asyncio
         from gateway.run import start_gateway
-        print("Starting Hermes Gateway (messaging platforms)...")
+        print("Starting GPUCLOUD Gateway (messaging platforms)...")
         asyncio.run(start_gateway())
         return
 

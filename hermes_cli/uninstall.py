@@ -1,5 +1,5 @@
 """
-Hermes Agent Uninstaller.
+GPUCLOUD Agent Uninstaller.
 
 Provides options for:
 - Full uninstall: Remove everything including configs and data
@@ -452,7 +452,7 @@ def run_uninstall(args):
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.MAGENTA, Colors.BOLD))
-    print(color("│            ⚕ Hermes Agent Uninstaller                  │", Colors.MAGENTA, Colors.BOLD))
+    print(color("│            GPUCLOUD Agent Uninstaller                  │", Colors.CYAN, Colors.BOLD))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.MAGENTA, Colors.BOLD))
     print()
     
@@ -676,5 +676,5 @@ def run_uninstall(args):
         print(color("Reload your shell to complete the process:", Colors.YELLOW))
         print("  source ~/.bashrc  # or ~/.zshrc")
     print()
-    print("Thank you for using Hermes Agent! ⚕")
+    print("Thank you for using GPUCLOUD Agent!")
     print()

@@ -197,11 +197,10 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
         "kanban",
         help="Multi-profile collaboration board (tasks, links, comments)",
         description=(
-            "Durable SQLite-backed task board shared across Hermes profiles. "
+            "Durable SQLite-backed task board shared across GPUCLOUD profiles. "
             "Tasks are claimed atomically, can depend on other tasks, and "
             "are executed by a named profile in an isolated workspace. "
-            "See https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban "
-            "or docs/hermes-kanban-v1-spec.pdf for the full design."
+            "See the GPUCLOUD kanban documentation for the full design."
         ),
     )
     # --- global --board flag ---
@@ -215,8 +214,8 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
         metavar="<slug>",
         help=(
             "Board slug to operate on. Defaults to the current board "
-            "(set via `hermes kanban boards switch <slug>` or the "
-            "HERMES_KANBAN_BOARD env var). Use `hermes kanban boards list` "
+            "(set via `gpucloud kanban boards switch <slug>` or the "
+            "kanban board environment override). Use `gpucloud kanban boards list` "
             "to see all boards."
         ),
     )
@@ -617,7 +616,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
     # --- daemon (deprecated) ---
     p_daemon = sub.add_parser(
         "daemon",
-        help="DEPRECATED — dispatcher now runs in the gateway. Use `hermes gateway start`.",
+        help="DEPRECATED — dispatcher now runs in the gateway. Use `gpucloud gateway start`.",
     )
     p_daemon.add_argument("--interval", type=float, default=60.0,
                           help="Seconds between dispatch ticks (default: 60)")
@@ -731,7 +730,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
     p_asg = sub.add_parser(
         "assignees",
         help="List known profiles + per-profile task counts "
-             "(union of ~/.hermes/profiles/ and current assignees on the board)",
+             "(union of GPUCLOUD profiles and current assignees on the board)",
     )
     p_asg.add_argument("--json", action="store_true")
 

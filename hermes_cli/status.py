@@ -1,7 +1,7 @@
 """
-Status command for hermes CLI.
+Status command for GPUCLOUD CLI.
 
-Shows the status of all Hermes Agent components.
+Shows the status of all GPUCLOUD Agent components.
 """
 
 import os
@@ -61,6 +61,41 @@ def _format_iso_timestamp(value) -> str:
     return parsed.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
 
 
+def _brand_status_message(value) -> str:
+    """Convert legacy command hints in dependency status messages for display."""
+    text = str(value or "")
+    replacements = {
+        "`hermes ": "`gpucloud ",
+        "'hermes ": "'gpucloud ",
+        "Run `hermes ": "Run `gpucloud ",
+        "run `hermes ": "run `gpucloud ",
+        "run: hermes ": "run: gpucloud ",
+        "hermes auth": "gpucloud auth",
+        "hermes model": "gpucloud model",
+        "Hermes": "GPUCLOUD",
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
+
+def _display_auth_path(value) -> str:
+    """Display legacy auth storage as GPUCLOUD home without changing storage."""
+    text = str(value or "")
+    if not text:
+        return text
+    try:
+        home = str(get_hermes_home())
+        if home and text.startswith(home):
+            return text.replace(home, "<GPUCLOUD home>", 1)
+    except Exception:
+        pass
+    legacy_home = str(Path.home() / ".hermes")
+    if text.startswith(legacy_home):
+        return text.replace(legacy_home, "<GPUCLOUD home>", 1)
+    return text
+
+
 def _configured_model_label(config: dict) -> str:
     """Return the configured default model from config.yaml."""
     model_cfg = config.get("model")
@@ -91,13 +126,13 @@ from hermes_constants import is_termux as _is_termux
 
 
 def show_status(args):
-    """Show status of all Hermes Agent components."""
+    """Show status of all GPUCLOUD Agent components."""
     show_all = getattr(args, 'all', False)
     deep = getattr(args, 'deep', False)
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.CYAN))
-    print(color("│                 ⚕ Hermes Agent Status                  │", Colors.CYAN))
+    print(color("│                 GPUCLOUD Agent Status                  │", Colors.CYAN))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.CYAN))
 
     # =========================================================================
@@ -105,7 +140,8 @@ def show_status(args):
     # =========================================================================
     print()
     print(color("◆ Environment", Colors.CYAN, Colors.BOLD))
-    print(f"  Project:      {PROJECT_ROOT}")
+    project_display = str(PROJECT_ROOT).replace("hermes-agent", "gpucloud-agent")
+    print(f"  Project:      {project_display}")
     print(f"  Python:       {sys.version.split()[0]}")
 
     env_path = get_env_path()
@@ -224,7 +260,7 @@ def show_status(args):
     elif nous_inference_present:
         nous_label = "not logged in (Nous inference key configured)"
     else:
-        nous_label = "not logged in (run: hermes auth add nous --type oauth)"
+        nous_label = "not logged in (run: gpucloud auth add nous --type oauth)"
     print(
         f"  {'Nous Portal':<12}  {check_mark(nous_logged_in)} "
         f"{nous_label}"
@@ -248,21 +284,21 @@ def show_status(args):
     if nous_logged_in or nous_status.get("has_refresh_token"):
         print(f"    Refresh:    {refresh_label}")
     if nous_error:
-        print(f"    Error:      {nous_error}")
+        print(f"    Error:      {_brand_status_message(nous_error)}")
 
     codex_logged_in = bool(codex_status.get("logged_in"))
     print(
         f"  {'OpenAI Codex':<12}  {check_mark(codex_logged_in)} "
-        f"{'logged in' if codex_logged_in else 'not logged in (run: hermes model)'}"
+        f"{'logged in' if codex_logged_in else 'not logged in (run: gpucloud model)'}"
     )
     codex_auth_file = codex_status.get("auth_store")
     if codex_auth_file:
-        print(f"    Auth file:  {codex_auth_file}")
+        print(f"    Auth file:  {_display_auth_path(codex_auth_file)}")
     codex_last_refresh = _format_iso_timestamp(codex_status.get("last_refresh"))
     if codex_status.get("last_refresh"):
         print(f"    Refreshed:  {codex_last_refresh}")
     if codex_status.get("error") and not codex_logged_in:
-        print(f"    Error:      {codex_status.get('error')}")
+        print(f"    Error:      {_brand_status_message(codex_status.get('error'))}")
 
     qwen_logged_in = bool(qwen_status.get("logged_in"))
     print(
@@ -282,7 +318,7 @@ def show_status(args):
     minimax_logged_in = bool(minimax_status.get("logged_in"))
     print(
         f"  {'MiniMax OAuth':<12}  {check_mark(minimax_logged_in)} "
-        f"{'logged in' if minimax_logged_in else 'not logged in (run: hermes auth add minimax-oauth)'}"
+        f"{'logged in' if minimax_logged_in else 'not logged in (run: gpucloud auth add minimax-oauth)'}"
     )
     minimax_region = minimax_status.get("region")
     if minimax_logged_in and minimax_region:
@@ -291,7 +327,7 @@ def show_status(args):
     if minimax_exp:
         print(f"    Access exp: {minimax_exp}")
     if minimax_status.get("error") and not minimax_logged_in:
-        print(f"    Error:      {minimax_status.get('error')}")
+        print(f"    Error:      {_brand_status_message(minimax_status.get('error'))}")
 
     # xAI OAuth — separate try/except so an import failure here cannot
     # disrupt the already-printed Nous/Codex/Qwen/MiniMax rows above.
@@ -304,15 +340,15 @@ def show_status(args):
     xai_oauth_logged_in = bool(xai_oauth_status.get("logged_in"))
     print(
         f"  {'xAI OAuth':<12}  {check_mark(xai_oauth_logged_in)} "
-        f"{'logged in' if xai_oauth_logged_in else 'not logged in (run: hermes auth add xai-oauth)'}"
+        f"{'logged in' if xai_oauth_logged_in else 'not logged in (run: gpucloud auth add xai-oauth)'}"
     )
     xai_auth_file = xai_oauth_status.get("auth_store")
     if xai_auth_file:
-        print(f"    Auth file:  {xai_auth_file}")
+        print(f"    Auth file:  {_display_auth_path(xai_auth_file)}")
     if xai_oauth_status.get("last_refresh"):
         print(f"    Refreshed:  {_format_iso_timestamp(xai_oauth_status.get('last_refresh'))}")
     if xai_oauth_status.get("error") and not xai_oauth_logged_in:
-        print(f"    Error:      {xai_oauth_status.get('error')}")
+        print(f"    Error:      {_brand_status_message(xai_oauth_status.get('error'))}")
 
     # =========================================================================
     # Nous Subscription Features
@@ -371,7 +407,7 @@ def show_status(args):
             if key_val:
                 break
         configured = bool(key_val)
-        label = "configured" if configured else "not configured (run: hermes model)"
+        label = "configured" if configured else "not configured (run: gpucloud model)"
         print(f"  {pname:<16} {check_mark(configured)} {label}")
 
     # LM Studio reachability — only probe when it's the active provider so
@@ -488,7 +524,7 @@ def show_status(args):
         if snapshot.has_process_service_mismatch:
             print("  Service:      installed but not managing the current running gateway")
         elif _is_termux() and not snapshot.gateway_pids:
-            print("  Start with:   hermes gateway")
+            print("  Start with:   gpucloud gateway")
             print("  Note:         Android may stop background jobs when Termux is suspended")
         elif snapshot.service_installed and not snapshot.service_running:
             print("  Service:      installed but stopped")
@@ -582,6 +618,6 @@ def show_status(args):
 
     print()
     print(color("─" * 60, Colors.DIM))
-    print(color("  Run 'hermes doctor' for detailed diagnostics", Colors.DIM))
-    print(color("  Run 'hermes setup' to configure", Colors.DIM))
+    print(color("  Run 'gpucloud doctor' for detailed diagnostics", Colors.DIM))
+    print(color("  Run 'gpucloud setup' to configure", Colors.DIM))
     print()

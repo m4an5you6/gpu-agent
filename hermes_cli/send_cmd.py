@@ -1,4 +1,4 @@
-"""CLI subcommand: ``hermes send`` — pipe text from shell scripts to any
+"""CLI subcommand: ``gpucloud send`` — pipe text from shell scripts to any
 configured messaging platform (Telegram, Discord, Slack, Signal, SMS, etc.).
 
 This is a thin wrapper around ``tools.send_message_tool.send_message_tool``
@@ -60,7 +60,7 @@ def _read_message_body(
         try:
             return Path(file_path).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
-            print(f"hermes send: cannot read {file_path}: {exc}", file=sys.stderr)
+            print(f"gpucloud send: cannot read {file_path}: {exc}", file=sys.stderr)
             sys.exit(_USAGE_EXIT)
 
     # Piped input: only consume stdin when it is not a TTY. Reading from a
@@ -105,7 +105,7 @@ def _emit_result(
         pass
     else:
         if payload.get("error"):
-            print(f"hermes send: {payload['error']}", file=sys.stderr)
+            print(f"gpucloud send: {payload['error']}", file=sys.stderr)
         elif payload.get("success"):
             note = payload.get("note")
             if note:
@@ -140,13 +140,13 @@ def _list_targets(platform_filter: Optional[str], *, json_mode: bool) -> int:
             load_directory,
         )
     except Exception as exc:
-        print(f"hermes send: failed to load channel directory: {exc}", file=sys.stderr)
+        print(f"gpucloud send: failed to load channel directory: {exc}", file=sys.stderr)
         return _FAILURE_EXIT
 
     try:
         raw = load_directory()
     except Exception as exc:
-        print(f"hermes send: failed to read channel directory: {exc}", file=sys.stderr)
+        print(f"gpucloud send: failed to read channel directory: {exc}", file=sys.stderr)
         return _FAILURE_EXIT
 
     platforms = dict(raw.get("platforms") or {})
@@ -156,7 +156,7 @@ def _list_targets(platform_filter: Optional[str], *, json_mode: bool) -> int:
         filtered = {k: v for k, v in platforms.items() if k.lower() == key}
         if not filtered:
             print(
-                f"hermes send: no targets found for platform '{platform_filter}'. "
+                f"gpucloud send: no targets found for platform '{platform_filter}'. "
                 f"Configured: {', '.join(sorted(platforms)) or '(none)'}",
                 file=sys.stderr,
             )
@@ -169,8 +169,8 @@ def _list_targets(platform_filter: Optional[str], *, json_mode: bool) -> int:
 
     if not any(platforms.values()):
         print("No messaging platforms configured or no channels discovered yet.")
-        print("Set one up with `hermes gateway setup`, or run the gateway once so")
-        print("channel discovery can populate ~/.hermes/channel_directory.json.")
+        print("Set one up with `gpucloud gateway setup`, or run the gateway once so")
+        print("channel discovery can populate the GPUCLOUD channel directory.")
         return _SUCCESS_EXIT
 
     # Human display — when unfiltered, reuse the shared formatter the agent
@@ -293,11 +293,11 @@ def cmd_send(args: argparse.Namespace) -> None:
     target = _resolve_target(getattr(args, "to", None))
     if not target:
         print(
-            "hermes send: --to PLATFORM[:channel[:thread]] is required\n"
+            "gpucloud send: --to PLATFORM[:channel[:thread]] is required\n"
             "Examples:\n"
-            "  hermes send --to telegram \"hello\"\n"
-            "  hermes send --to discord:#ops --file report.md\n"
-            "  hermes send --list      # list available targets",
+            "  gpucloud send --to telegram \"hello\"\n"
+            "  gpucloud send --to discord:#ops --file report.md\n"
+            "  gpucloud send --list      # list available targets",
             file=sys.stderr,
         )
         sys.exit(_USAGE_EXIT)
@@ -308,7 +308,7 @@ def cmd_send(args: argparse.Namespace) -> None:
     )
     if message is None or not message.strip():
         print(
-            "hermes send: no message provided. Pass text as a positional "
+            "gpucloud send: no message provided. Pass text as a positional "
             "argument, use --file PATH, or pipe data via stdin.",
             file=sys.stderr,
         )
@@ -355,20 +355,20 @@ def register_send_subparser(subparsers) -> argparse.ArgumentParser:
         "send",
         help="Send a message to a configured platform (scripts, cron jobs, CI).",
         description=(
-            "Pipe text from any shell script to any messaging platform Hermes "
+            "Pipe text from any shell script to any messaging platform GPUCLOUD "
             "is already configured for. Reuses the gateway's platform "
-            "credentials (~/.hermes/.env + ~/.hermes/config.yaml) — no LLM, "
+            "credentials — no LLM, "
             "no agent loop, no running gateway required for bot-token "
             "platforms like Telegram/Discord/Slack/Signal."
         ),
         epilog=(
             "Examples:\n"
-            "  hermes send --to telegram \"deploy finished\"\n"
-            "  echo \"RAM 92%\" | hermes send --to telegram:-1001234567890\n"
-            "  hermes send --to discord:#ops --file /tmp/report.md\n"
-            "  hermes send --to slack:#eng --subject \"[CI]\" --file build.log\n"
-            "  hermes send --list                  # all platforms\n"
-            "  hermes send --list telegram         # filter by platform\n"
+            "  gpucloud send --to telegram \"deploy finished\"\n"
+            "  echo \"RAM 92%\" | gpucloud send --to telegram:-1001234567890\n"
+            "  gpucloud send --to discord:#ops --file /tmp/report.md\n"
+            "  gpucloud send --to slack:#eng --subject \"[CI]\" --file build.log\n"
+            "  gpucloud send --list                  # all platforms\n"
+            "  gpucloud send --list telegram         # filter by platform\n"
             "\n"
             "Exit codes: 0 ok, 1 delivery/backend error, 2 usage error."
         ),
@@ -420,7 +420,7 @@ def register_send_subparser(subparsers) -> argparse.ArgumentParser:
         dest="list_targets",
         action="store_true",
         default=False,
-        help="List available targets. Optional positional filter: `hermes send --list telegram`.",
+        help="List available targets. Optional positional filter: `gpucloud send --list telegram`.",
     )
 
     parser.add_argument(

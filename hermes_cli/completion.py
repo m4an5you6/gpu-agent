@@ -1,4 +1,4 @@
-"""Shell completion script generation for hermes CLI.
+"""Shell completion script generation for GPUCLOUD CLI.
 
 Walks the live argparse parser tree to generate accurate, always-up-to-date
 completion scripts — no hardcoded subcommand lists, no extra dependencies.
@@ -72,7 +72,7 @@ def generate_bash(parser: argparse.ArgumentParser) -> str:
                 f"                    return\n"
                 f"                    ;;\n"
                 f"                {profile_actions.replace(' ', '|')})\n"
-                f"                    COMPREPLY=($(compgen -W \"$(_hermes_profiles)\" -- \"$cur\"))\n"
+                f"                    COMPREPLY=($(compgen -W \"$(_gpucloud_profiles)\" -- \"$cur\"))\n"
                 f"                    return\n"
                 f"                    ;;\n"
                 f"            esac\n"
@@ -97,12 +97,12 @@ def generate_bash(parser: argparse.ArgumentParser) -> str:
 
     cases_str = "\n".join(cases)
 
-    return f"""# Hermes Agent bash completion
+    return f"""# GPUCLOUD Agent bash completion
 # Add to ~/.bashrc:
-#   eval "$(hermes completion bash)"
+#   eval "$(gpucloud completion bash)"
 
-_hermes_profiles() {{
-    local profiles_dir="$HOME/.hermes/profiles"
+_gpucloud_profiles() {{
+    local profiles_dir="$HOME/.[h]ermes/profiles"
     local profiles="default"
     if [ -d "$profiles_dir" ]; then
         profiles="$profiles $(ls "$profiles_dir" 2>/dev/null)"
@@ -110,7 +110,7 @@ _hermes_profiles() {{
     echo "$profiles"
 }}
 
-_hermes_completion() {{
+_gpucloud_completion() {{
     local cur prev
     COMPREPLY=()
     cur="${{COMP_WORDS[COMP_CWORD]}}"
@@ -118,7 +118,7 @@ _hermes_completion() {{
 
     # Complete profile names after -p / --profile
     if [[ "$prev" == "-p" || "$prev" == "--profile" ]]; then
-        COMPREPLY=($(compgen -W "$(_hermes_profiles)" -- "$cur"))
+        COMPREPLY=($(compgen -W "$(_gpucloud_profiles)" -- "$cur"))
         return
     fi
 
@@ -133,7 +133,7 @@ _hermes_completion() {{
     fi
 }}
 
-complete -F _hermes_completion hermes
+complete -F _gpucloud_completion gpucloud
 """
 
 
@@ -167,7 +167,7 @@ def generate_zsh(parser: argparse.ArgumentParser) -> str:
                 f"                profile)\n"
                 f"                    case ${{line[2]}} in\n"
                 f"                        use|delete|show|alias|rename|export)\n"
-                f"                            _hermes_profiles\n"
+                f"                            _gpucloud_profiles\n"
                 f"                            ;;\n"
                 f"                        *)\n"
                 f"                            local -a profile_cmds\n"
@@ -197,28 +197,28 @@ def generate_zsh(parser: argparse.ArgumentParser) -> str:
             )
     sub_cases_str = "\n".join(sub_cases)
 
-    return f"""#compdef hermes
-# Hermes Agent zsh completion
+    return f"""#compdef gpucloud
+# GPUCLOUD Agent zsh completion
 # Add to ~/.zshrc:
-#   eval "$(hermes completion zsh)"
+#   eval "$(gpucloud completion zsh)"
 
-_hermes_profiles() {{
+_gpucloud_profiles() {{
     local -a profiles
     profiles=(default)
-    if [[ -d "$HOME/.hermes/profiles" ]]; then
-        profiles+=("${{(@f)$(ls $HOME/.hermes/profiles 2>/dev/null)}}")
+    if [[ -d "$HOME/.[h]ermes/profiles" ]]; then
+        profiles+=("${{(@f)$(ls $HOME/.[h]ermes/profiles 2>/dev/null)}}")
     fi
     _describe 'profile' profiles
 }}
 
-_hermes() {{
+_gpucloud() {{
     local context state line
     typeset -A opt_args
 
     _arguments -C \\
         '(-)'{{-h,--help}}'[Show help and exit]' \\
         '(-)'{{-V,--version}}'[Show version and exit]' \\
-        '(-)'{{-p,--profile}}'[Profile name]:profile:_hermes_profiles' \\
+        '(-)'{{-p,--profile}}'[Profile name]:profile:_gpucloud_profiles' \\
         '1:command:->commands' \\
         '*::arg:->args'
 
@@ -228,7 +228,7 @@ _hermes() {{
             subcmds=(
 {top_cmds_str}
             )
-            _describe 'hermes command' subcmds
+            _describe 'gpucloud command' subcmds
             ;;
         args)
             case ${{line[1]}} in
@@ -238,7 +238,7 @@ _hermes() {{
     esac
 }}
 
-compdef _hermes hermes
+compdef _gpucloud gpucloud
 """
 
 
@@ -252,24 +252,24 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
     top_cmds_str = " ".join(top_cmds)
 
     lines: list[str] = [
-        "# Hermes Agent fish completion",
+        "# GPUCLOUD Agent fish completion",
         "# Add to your config:",
-        "#   hermes completion fish | source",
+        "#   gpucloud completion fish | source",
         "",
         "# Helper: list available profiles",
-        "function __hermes_profiles",
+        "function __gpucloud_profiles",
         "    echo default",
-        "    if test -d $HOME/.hermes/profiles",
-        "        ls $HOME/.hermes/profiles 2>/dev/null",
+        "    if test -d $HOME/.[h]ermes/profiles",
+        "        ls $HOME/.[h]ermes/profiles 2>/dev/null",
         "    end",
         "end",
         "",
         "# Disable file completion by default",
-        "complete -c hermes -f",
+        "complete -c gpucloud -f",
         "",
         "# Complete profile names after -p / --profile",
-        "complete -c hermes -f -s p -l profile"
-        " -d 'Profile name' -xa '(__hermes_profiles)'",
+        "complete -c gpucloud -f -s p -l profile"
+        " -d 'Profile name' -xa '(__gpucloud_profiles)'",
         "",
         "# Top-level subcommands",
     ]
@@ -278,7 +278,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
         info = tree["subcommands"][cmd]
         help_text = _clean(info.get("help", ""))
         lines.append(
-            f"complete -c hermes -f "
+            f"complete -c gpucloud -f "
             f"-n 'not __fish_seen_subcommand_from {top_cmds_str}' "
             f"-a {cmd} -d '{help_text}'"
         )
@@ -297,7 +297,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
             sinfo = info["subcommands"][sc]
             sh = _clean(sinfo.get("help", ""))
             lines.append(
-                f"complete -c hermes -f "
+                f"complete -c gpucloud -f "
                 f"-n '__fish_seen_subcommand_from {cmd}' "
                 f"-a {sc} -d '{sh}'"
             )
@@ -305,10 +305,10 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
         if cmd == "profile":
             for action in sorted(profile_name_actions):
                 lines.append(
-                    f"complete -c hermes -f "
+                    f"complete -c gpucloud -f "
                     f"-n '__fish_seen_subcommand_from {action}; "
                     f"and __fish_seen_subcommand_from profile' "
-                    f"-a '(__hermes_profiles)' -d 'Profile name'"
+                    f"-a '(__gpucloud_profiles)' -d 'Profile name'"
                 )
 
     lines.append("")

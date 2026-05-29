@@ -1,5 +1,5 @@
 """
-Top-level argparse construction for the hermes CLI.
+Top-level argparse construction for the GPUCLOUD CLI.
 
 Lives in its own module so other modules (e.g. ``relaunch.py``) can
 introspect the parser to discover which flags exist without running the
@@ -39,43 +39,38 @@ def _inherited_flag(parser, *args, **kwargs):
 
 _EPILOGUE = """
 Examples:
-    hermes                        Start interactive chat
-    hermes chat -q "Hello"        Single query mode
-    hermes -c                     Resume the most recent session
-    hermes -c "my project"        Resume a session by name (latest in lineage)
-    hermes --resume <session_id>  Resume a specific session by ID
-    hermes setup                  Run setup wizard
-    hermes logout                 Clear stored authentication
-    hermes auth add <provider>    Add a pooled credential
-    hermes auth list              List pooled credentials
-    hermes auth remove <p> <t>    Remove pooled credential by index, id, or label
-    hermes auth reset <provider>  Clear exhaustion status for a provider
-    hermes model                  Select default model
-    hermes fallback [list]        Show fallback provider chain
-    hermes fallback add           Add a fallback provider (same picker as `hermes model`)
-    hermes fallback remove        Remove a fallback provider from the chain
-    hermes config                 View configuration
-    hermes config edit            Edit config in $EDITOR
-    hermes config set model gpt-4 Set a config value
-    hermes gateway                Run messaging gateway
-    hermes -s hermes-agent-dev,github-auth
-    hermes -w                     Start in isolated git worktree
-    hermes gateway install        Install gateway background service
-    hermes sessions list          List past sessions
-    hermes sessions browse        Interactive session picker
-    hermes sessions rename ID T   Rename/title a session
-    hermes logs                   View agent.log (last 50 lines)
-    hermes logs -f                Follow agent.log in real time
-    hermes logs errors            View errors.log
-    hermes logs --since 1h        Lines from the last hour
-    hermes debug share             Upload debug report for support
-    hermes update                 Update to latest version
-    hermes dashboard              Start web UI dashboard (port 9119)
-    hermes dashboard --stop       Stop running dashboard processes
-    hermes dashboard --status     List running dashboard processes
+    gpucloud                        Start interactive chat
+    gpucloud chat -q "Hello"        Single query mode
+    gpucloud -c                     Resume the most recent session
+    gpucloud -c "my project"        Resume a session by name (latest in lineage)
+    gpucloud --resume <session_id>  Resume a specific session by ID
+    gpucloud setup                  Run setup wizard
+    gpucloud logout                 Clear stored authentication
+    gpucloud auth add <provider>    Add a pooled credential
+    gpucloud auth list              List pooled credentials
+    gpucloud auth remove <p> <t>    Remove pooled credential by index, id, or label
+    gpucloud auth reset <provider>  Clear exhaustion status for a provider
+    gpucloud model                  Select default model
+    gpucloud fallback [list]        Show fallback provider chain
+    gpucloud fallback add           Add a fallback provider (same picker as `gpucloud model`)
+    gpucloud fallback remove        Remove a fallback provider from the chain
+    gpucloud config                 View configuration
+    gpucloud config edit            Edit config in $EDITOR
+    gpucloud config set model gpt-4 Set a config value
+    gpucloud -s mlops-training      Preload a skill for the session
+    gpucloud -w                     Start in isolated git worktree
+    gpucloud sessions list          List past sessions
+    gpucloud sessions browse        Interactive session picker
+    gpucloud sessions rename ID T   Rename/title a session
+    gpucloud logs                   View agent.log (last 50 lines)
+    gpucloud logs -f                Follow agent.log in real time
+    gpucloud logs errors            View errors.log
+    gpucloud logs --since 1h        Lines from the last hour
+    gpucloud debug share            Upload debug report for support
+    gpucloud update                 Update to latest version
 
 For more help on a command:
-    hermes <command> --help
+    gpucloud <command> --help
 """
 
 
@@ -87,8 +82,8 @@ def build_top_level_parser():
     other subparsers via ``subparsers.add_parser(...)``.
     """
     parser = argparse.ArgumentParser(
-        prog="hermes",
-        description="Hermes Agent - AI assistant with tool-calling capabilities",
+        prog="gpucloud",
+        description="GPUCLOUD Agent - GPU cluster and ML operations assistant",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=_EPILOGUE,
     )
@@ -112,7 +107,7 @@ def build_top_level_parser():
     # --model / --provider are accepted at the top level so they can pair
     # with -z without needing the `chat` subcommand.  If neither -z nor a
     # subcommand consumes them, they fall through harmlessly as None.
-    # Mirrors `hermes chat --model ... --provider ...` semantics.
+    # Mirrors `gpucloud chat --model ... --provider ...` semantics.
     _inherited_flag(
         parser,
         "-m",
@@ -120,7 +115,7 @@ def build_top_level_parser():
         default=None,
         help=(
             "Model override for this invocation (e.g. anthropic/claude-sonnet-4.6). "
-            "Applies to -z/--oneshot and --tui. Also settable via HERMES_INFERENCE_MODEL env var."
+            "Applies to -z/--oneshot and --tui. Also settable via the inference model environment override."
         ),
     )
     _inherited_flag(
@@ -130,7 +125,7 @@ def build_top_level_parser():
         help=(
             "Provider override for this invocation (e.g. openrouter, anthropic). "
             "Applies to -z/--oneshot and --tui. The persistent provider lives in config.yaml "
-            "under model.provider — use `hermes setup` or edit the file to change it."
+            "under model.provider — use `gpucloud setup` or edit the file to change it."
         ),
     )
     parser.add_argument(
@@ -170,8 +165,8 @@ def build_top_level_parser():
         default=False,
         help=(
             "Auto-approve any unseen shell hooks declared in config.yaml "
-            "without a TTY prompt.  Equivalent to HERMES_ACCEPT_HOOKS=1 or "
-            "hooks_auto_accept: true in config.yaml.  Use on CI / headless "
+            "without a TTY prompt.  Equivalent to hooks_auto_accept: true "
+            "in config.yaml.  Use on CI / headless "
             "runs that can't prompt."
         ),
     )
@@ -202,7 +197,7 @@ def build_top_level_parser():
         "--ignore-user-config",
         action="store_true",
         default=False,
-        help="Ignore ~/.hermes/config.yaml and fall back to built-in defaults (credentials in .env are still loaded)",
+        help="Ignore the user config file and fall back to built-in defaults (credentials in .env are still loaded)",
     )
     _inherited_flag(
         parser,
@@ -235,7 +230,7 @@ def build_top_level_parser():
     chat_parser = subparsers.add_parser(
         "chat",
         help="Interactive chat with the agent",
-        description="Start an interactive chat session with Hermes Agent",
+        description="Start an interactive chat session with GPUCLOUD Agent",
     )
     chat_parser.add_argument(
         "-q", "--query", help="Single query (non-interactive mode)"
@@ -312,8 +307,7 @@ def build_top_level_parser():
         default=argparse.SUPPRESS,
         help=(
             "Auto-approve any unseen shell hooks declared in config.yaml "
-            "without a TTY prompt (see also HERMES_ACCEPT_HOOKS env var and "
-            "hooks_auto_accept: in config.yaml)."
+            "without a TTY prompt (see also hooks_auto_accept: in config.yaml)."
         ),
     )
     chat_parser.add_argument(
@@ -348,7 +342,7 @@ def build_top_level_parser():
         "--ignore-user-config",
         action="store_true",
         default=argparse.SUPPRESS,
-        help="Ignore ~/.hermes/config.yaml and fall back to built-in defaults (credentials in .env are still loaded). Useful for isolated CI runs, reproduction, and third-party integrations.",
+        help="Ignore the user config file and fall back to built-in defaults (credentials in .env are still loaded). Useful for isolated CI runs, reproduction, and third-party integrations.",
     )
     _inherited_flag(
         chat_parser,
