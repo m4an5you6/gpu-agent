@@ -12533,6 +12533,51 @@ Examples:
     config_parser.set_defaults(func=cmd_config)
 
     # =========================================================================
+    # cluster command (GPUCLOUD phase 5 — read-only probes)
+    # =========================================================================
+    cluster_parser = subparsers.add_parser(
+        "cluster",
+        help="GPU cluster read-only checks (gpucloud.yaml)",
+        description="SSH/GPU cluster probes without starting training",
+    )
+    cluster_sub = cluster_parser.add_subparsers(dest="cluster_command")
+
+    cluster_check = cluster_sub.add_parser(
+        "check",
+        help="Check node connectivity, workdir, and GPUs",
+    )
+    cluster_check.add_argument(
+        "--file",
+        "-f",
+        dest="gpucloud_config_file",
+        help="Path to gpucloud.yaml (default: auto-discover)",
+    )
+    cluster_check.add_argument(
+        "--cluster",
+        dest="gpucloud_cluster",
+        help="Only check nodes in this cluster name",
+    )
+
+    def cmd_cluster(args):
+        import json
+
+        sub = getattr(args, "cluster_command", None)
+        if sub != "check":
+            cluster_parser.print_help()
+            return 1
+        from hermes_cli.gpucloud_probe import run_cluster_check
+
+        result = run_cluster_check(
+            config_file=getattr(args, "gpucloud_config_file", None),
+            cluster_name=getattr(args, "gpucloud_cluster", None),
+            allow_discover_without_goal=True,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result.get("ok") else 1
+
+    cluster_parser.set_defaults(func=cmd_cluster)
+
+    # =========================================================================
     # pairing command
     # =========================================================================
     pairing_parser = subparsers.add_parser(

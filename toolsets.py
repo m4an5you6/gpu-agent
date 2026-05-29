@@ -169,6 +169,16 @@ TOOLSETS = {
         "includes": []
     },
     
+    "gpucloud": {
+        "description": "GPUCLOUD cluster SSH/GPU read-only probes (phase 5)",
+        "tools": [
+            "gpucloud_cluster_check",
+            "gpucloud_ssh_exec",
+            "gpucloud_gpu_probe",
+        ],
+        "includes": [],
+    },
+
     "memory": {
         "description": "Persistent memory across sessions (personal notes + user profile)",
         "tools": ["memory"],

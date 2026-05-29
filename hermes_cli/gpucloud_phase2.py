@@ -95,6 +95,9 @@ GPUCLOUD_CORE_TOOLS: list[str] = [
     "execute_code",
     "delegate_task",
     "cronjob",
+    "gpucloud_cluster_check",
+    "gpucloud_ssh_exec",
+    "gpucloud_gpu_probe",
 ]
 
 # Bundled plugin keys (path-derived) not auto-loaded in phase 2.

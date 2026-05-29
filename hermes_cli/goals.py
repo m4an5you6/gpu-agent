@@ -564,6 +564,9 @@ class GoalManager:
         save_goal(self.session_id, self._state)
         self._state = None
         self._gpucloud_context = None
+        from hermes_cli.gpucloud_context import clear_goal_gpucloud_config
+
+        clear_goal_gpucloud_config()
 
     def _load_gpucloud_context_for_goal(self) -> None:
         """Load gpucloud.yaml — only when starting a /goal (phase 4)."""
@@ -579,6 +582,12 @@ class GoalManager:
                 detail = "; ".join(exc.errors)
                 raise ValueError(f"gpucloud.yaml: {detail}") from exc
             raise ValueError(str(exc)) from exc
+        from hermes_cli.gpucloud_context import (
+            clear_goal_gpucloud_config,
+            set_goal_gpucloud_config,
+        )
+
+        set_goal_gpucloud_config(prepared)
         self._gpucloud_context = prepared.context_block_for_goal()
 
     def _wrap_goal_message(self, message: str) -> str:
