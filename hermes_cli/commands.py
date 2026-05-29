@@ -22,6 +22,8 @@ from typing import Any
 
 from utils import is_truthy_value
 
+from hermes_cli.gpucloud_phase2 import filter_command_registry
+
 logger = logging.getLogger(__name__)
 
 # prompt_toolkit is an optional CLI dependency — only needed for
@@ -221,6 +223,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("quit", "Exit the CLI (use --delete to also remove session history)", "Exit",
                cli_only=True, aliases=("exit",), args_hint="[--delete]"),
 ]
+
+COMMAND_REGISTRY = filter_command_registry(COMMAND_REGISTRY)
 
 
 # ---------------------------------------------------------------------------

@@ -1162,6 +1162,17 @@ class PluginManager:
             # for the same reason: every platform Hermes ships must be
             # available out of the box without the user having to opt in.
             if manifest.source == "bundled" and manifest.kind in {"backend", "platform"}:
+                from hermes_cli.gpucloud_phase2 import bundled_plugin_enabled
+
+                if not bundled_plugin_enabled(lookup_key):
+                    loaded = LoadedPlugin(manifest=manifest, enabled=False)
+                    loaded.error = "disabled in GPUCLOUD phase 2"
+                    self._plugins[lookup_key] = loaded
+                    logger.debug(
+                        "Skipping bundled plugin '%s' (GPUCLOUD phase 2 denylist)",
+                        lookup_key,
+                    )
+                    continue
                 self._load_plugin(manifest)
                 continue
 

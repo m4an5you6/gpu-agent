@@ -56,11 +56,14 @@ def _module_registers_tools(module_path: Path) -> bool:
 
 def discover_builtin_tools(tools_dir: Optional[Path] = None) -> List[str]:
     """Import built-in self-registering tool modules and return their module names."""
+    from hermes_cli.gpucloud_phase2 import tool_module_enabled
+
     tools_path = Path(tools_dir) if tools_dir is not None else Path(__file__).resolve().parent
     module_names = [
         f"tools.{path.stem}"
         for path in sorted(tools_path.glob("*.py"))
         if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}
+        and tool_module_enabled(path.name)
         and _module_registers_tools(path)
     ]
 

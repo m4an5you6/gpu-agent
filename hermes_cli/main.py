@@ -1663,7 +1663,7 @@ def _pin_kanban_board_env() -> None:
 
 def cmd_chat(args):
     """Run interactive chat CLI."""
-    use_tui = getattr(args, "tui", False) or os.environ.get("HERMES_TUI") == "1"
+    use_tui = False  # GPUCLOUD phase 2: classic REPL only (TUI entry removed)
 
     # Resolve --continue into --resume with the latest session or by name
     continue_val = getattr(args, "continue_last", None)
@@ -11021,7 +11021,9 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         # expensive eager import of every bundled plugin module.
         "help",
     }
-)
+) - __import__(
+    "hermes_cli.gpucloud_phase2", fromlist=["DISABLED_CLI_COMMANDS"]
+).DISABLED_CLI_COMMANDS
 
 
 # Top-level flags that take a value. Needed by ``_first_positional_argv``
@@ -11243,44 +11245,8 @@ def _try_termux_fast_cli_launch() -> bool:
 
 
 def _try_termux_fast_tui_launch() -> bool:
-    """Launch obvious Termux TUI invocations before building every subparser.
-
-    `hermes --tui` is the hot path on phones. The full parser setup imports
-    command modules for model, fallback, migrate, kanban, bundles, plugins,
-    etc. even though the TUI immediately execs Node. On Termux only, parse the
-    lightweight top-level/chat parser and hand off to ``cmd_chat`` when the
-    invocation is unambiguously the built-in TUI/chat path.
-    """
-    if not _is_termux_startup_environment():
-        return False
-
-    if "-h" in sys.argv[1:] or "--help" in sys.argv[1:]:
-        return False
-
-    wants_tui = os.environ.get("HERMES_TUI") == "1" or "--tui" in sys.argv[1:]
-    if not wants_tui:
-        return False
-
-    first = _first_positional_argv()
-    if first not in {None, "chat"}:
-        return False
-
-    from hermes_cli._parser import build_top_level_parser
-
-    parser, _subparsers, chat_parser = build_top_level_parser()
-    chat_parser.set_defaults(func=cmd_chat)
-    args = parser.parse_args(_coalesce_session_name_args(sys.argv[1:]))
-
-    # Preserve top-level behaviours whose semantics are not "launch chat/TUI".
-    if getattr(args, "version", False) or getattr(args, "oneshot", None):
-        return False
-    if getattr(args, "command", None) not in {None, "chat"}:
-        return False
-    if not (getattr(args, "tui", False) or os.environ.get("HERMES_TUI") == "1"):
-        return False
-
-    cmd_chat(args)
-    return True
+    """GPUCLOUD phase 2: TUI entry removed; never take the Termux fast path."""
+    return False
 
 
 def main():
@@ -11735,12 +11701,12 @@ def main():
         "setup",
         help="Interactive setup wizard",
         description="Configure GPUCLOUD Agent with an interactive wizard. "
-        "Run a specific section: gpucloud setup model|tts|terminal|gateway|tools|agent",
+        "Run a specific section: gpucloud setup model|terminal|tools|agent",
     )
     setup_parser.add_argument(
         "section",
         nargs="?",
-        choices=["model", "tts", "terminal", "gateway", "tools", "agent"],
+        choices=["model", "terminal", "tools", "agent"],
         default=None,
         help="Run a specific setup section instead of the full wizard",
     )
@@ -11905,7 +11871,7 @@ def main():
     )
     logout_parser.add_argument(
         "--provider",
-        choices=["nous", "openai-codex", "xai-oauth", "spotify"],
+        choices=["nous", "openai-codex", "xai-oauth"],
         default=None,
         help="Provider to log out from (default: active provider)",
     )
@@ -11981,31 +11947,6 @@ def main():
         "logout", help="Log out a provider and clear stored auth state"
     )
     auth_logout.add_argument("provider", help="Provider id")
-    auth_spotify = auth_subparsers.add_parser(
-        "spotify", help="Authenticate GPUCLOUD with Spotify via PKCE"
-    )
-    auth_spotify.add_argument(
-        "spotify_action",
-        nargs="?",
-        choices=["login", "status", "logout"],
-        default="login",
-    )
-    auth_spotify.add_argument(
-        "--client-id", help="Spotify app client_id (or set HERMES_SPOTIFY_CLIENT_ID)"
-    )
-    auth_spotify.add_argument(
-        "--redirect-uri",
-        help="Allow-listed localhost redirect URI for your Spotify app",
-    )
-    auth_spotify.add_argument("--scope", help="Override requested Spotify scopes")
-    auth_spotify.add_argument(
-        "--no-browser",
-        action="store_true",
-        help="Do not attempt to open the browser automatically",
-    )
-    auth_spotify.add_argument(
-        "--timeout", type=float, help="Callback/token exchange timeout in seconds"
-    )
     auth_parser.set_defaults(func=cmd_auth)
 
     # =========================================================================
@@ -14173,6 +14114,11 @@ Examples:
         help="Filter by component: gateway, agent, tools, cli, cron",
     )
     logs_parser.set_defaults(func=cmd_logs)
+
+    # GPUCLOUD phase 2: drop peripheral subcommands from routing and --help.
+    from hermes_cli.gpucloud_phase2 import prune_disabled_cli_subcommands
+
+    prune_disabled_cli_subcommands(parser, subparsers)
 
     # =========================================================================
     # Parse and execute
