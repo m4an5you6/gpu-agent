@@ -1,201 +1,250 @@
-<p align="center">
-  <img src="assets/banner.png" alt="Hermes Agent" width="100%">
-</p>
+# GPUCLOUD Agent
 
-# Hermes Agent ☤
+GPUCLOUD Agent 是一个面向 GPU 集群和机器学习任务的 CLI 优先 Agent。它保留核心 Agent 循环、工具、记忆、技能、cron 和委派能力，同时把默认产品面收敛到 GPU 探测、Megatron-LM 训练、checkpoint 管理、vLLM 推理和 `/goal` 驱动的 ML 流程。
 
-<p align="center">
-  <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
-  <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
-  <a href="https://nousresearch.com"><img src="https://img.shields.io/badge/Built%20by-Nous%20Research-blueviolet?style=for-the-badge" alt="Built by Nous Research"></a>
-  <a href="README.md"><img src="https://img.shields.io/badge/Lang-English-lightgrey?style=for-the-badge" alt="English"></a>
-</p>
+当前主入口是 `gpucloud`。通用消息平台、Dashboard、娱乐插件和 IDE 入口不属于 GPUCLOUD 默认工作流。
 
-**由 [Nous Research](https://nousresearch.com) 构建的自进化 AI 代理。** 它是唯一内置学习闭环的智能代理——从经验中创建技能，在使用中改进技能，主动持久化知识，搜索过往对话，并在跨会话中逐步构建对你的深度理解。可以在 $5 的 VPS 上运行，也可以在 GPU 集群上运行，或者使用几乎零成本的 Serverless 基础设施。它不绑定你的笔记本——你可以在 Telegram 上与它对话，而它在云端 VM 上工作。
+## 更新内容
 
-支持任意模型——[Nous Portal](https://portal.nousresearch.com)、[OpenRouter](https://openrouter.ai)（200+ 模型）、[NVIDIA NIM](https://build.nvidia.com)（Nemotron）、[小米 MiMo](https://platform.xiaomimimo.com)、[z.ai/GLM](https://z.ai)、[Kimi/Moonshot](https://platform.moonshot.ai)、[MiniMax](https://www.minimax.io)、[Hugging Face](https://huggingface.co)、OpenAI，或自定义端点。使用 `hermes model` 即可切换——无需改代码，无锁定。
+- 用户可见产品名改为 GPUCLOUD。
+- `gpucloud.yaml` 作为 ML 集群配置文件。
+- 只有 `/goal` 会在 Agent 流程中隐式加载 `gpucloud.yaml`。
+- 显式 CLI 命令可以加载 `gpucloud.yaml` 做校验、探测、训练、checkpoint 和推理管理。
+- 训练框架固定为 Megatron-LM。
+- 推理引擎固定为 vLLM。
+- 新增 Distributed Megatron Worker Runtime，支持每台子机读取本机 task 文件并启动本机 rank。
+- GPUCLOUD 负责检查、dry-run、启动和监控；Megatron-LM、PyTorch distributed、NCCL 负责训练通信。
 
-<table>
-<tr><td><b>真正的终端界面</b></td><td>完整的 TUI，支持多行编辑、斜杠命令自动补全、对话历史、中断重定向和流式工具输出。</td></tr>
-<tr><td><b>随你所在</b></td><td>Telegram、Discord、Slack、WhatsApp、Signal 和 CLI——全部从单个网关进程运行。语音备忘录转写、跨平台对话连续性。</td></tr>
-<tr><td><b>闭环学习</b></td><td>代理管理记忆并定期自我提醒。复杂任务后自动创建技能。技能在使用中自我改进。FTS5 会话搜索配合 LLM 摘要实现跨会话回溯。<a href="https://github.com/plastic-labs/honcho">Honcho</a> 辩证式用户建模。兼容 <a href="https://agentskills.io">agentskills.io</a> 开放标准。</td></tr>
-<tr><td><b>定时自动化</b></td><td>内置 cron 调度器，支持向任何平台投递。日报、夜间备份、周审计——全部用自然语言描述，无人值守运行。</td></tr>
-<tr><td><b>委派与并行</b></td><td>生成隔离子代理处理并行工作流。编写 Python 脚本通过 RPC 调用工具，将多步管道压缩为零上下文开销的轮次。</td></tr>
-<tr><td><b>随处运行</b></td><td>六种终端后端——本地、Docker、SSH、Daytona、Singularity 和 Modal。Daytona 和 Modal 提供 Serverless 持久化——代理环境空闲时休眠、按需唤醒，空闲期间几乎零成本。$5 VPS 或 GPU 集群都能跑。</td></tr>
-<tr><td><b>研究就绪</b></td><td>批量轨迹生成、轨迹压缩——用于训练下一代工具调用模型。</td></tr>
-</table>
+## 架构差异
 
----
+GPUCLOUD 把职责分为三层：
 
-## 快速安装
+| 层 | 职责 |
+| --- | --- |
+| 主节点调度器或用户脚本 | 决定哪些机器参与训练，并把每台机器的 task 文件分发过去。第一版 worker runtime 不要求 Kubernetes、Slurm 或 GPUCLOUD 自己做 SSH fan-out。 |
+| GPUCLOUD Agent / CLI | 校验配置、探测 GPU、生成 dry-run、启动本机或远程进程、记录 job 状态、查看日志、暴露 Agent 工具。 |
+| ML Runtime | Megatron-LM、PyTorch distributed、NCCL 和 vLLM 执行真实训练或推理。 |
+
+多机 Megatron-LM 训练的关键点是：不是只在主节点执行一个命令。每台训练节点都要启动本机命令，并使用相同 rendezvous 地址、不同 `node_rank` 加入同一个 distributed 组。
+
+4 台机器、每台 1 张 GPU 时，每台机器的命令形态类似：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+torchrun \
+  --nnodes=4 \
+  --nproc-per-node=1 \
+  --node-rank=<0|1|2|3> \
+  --master-addr=<rank0_host_or_ip> \
+  --master-port=<port> \
+  /opt/Megatron-LM/pretrain_gpt.py \
+  ...
 ```
 
-支持 Linux、macOS、WSL2 和 Android (Termux)。安装程序会自动处理平台特定的配置。
+GPUCLOUD 不代理梯度通信，也不替代 NCCL；它只负责让本机训练进程可靠地加入 Megatron/PyTorch distributed 通信组。
 
-> **Android / Termux：** 已测试的手动安装路径请参考 [Termux 指南](https://hermes-agent.nousresearch.com/docs/getting-started/termux)。在 Termux 上，Hermes 会安装精选的 `.[termux]` 扩展，因为完整的 `.[all]` 扩展会拉取 Android 不兼容的语音依赖。
->
-> **Windows：** 原生 Windows 不受支持。请安装 [WSL2](https://learn.microsoft.com/zh-cn/windows/wsl/install) 并运行上述命令。
+## 常用命令
 
-安装后：
+校验集群配置：
 
 ```bash
-source ~/.bashrc    # 重新加载 shell（或: source ~/.zshrc）
-hermes              # 开始对话！
+gpucloud config validate --file gpucloud.yaml
 ```
 
----
-
-## 快速入门
+检查 SSH、工作目录和 GPU：
 
 ```bash
-hermes              # 交互式 CLI — 开始对话
-hermes model        # 选择 LLM 提供商和模型
-hermes tools        # 配置启用的工具
-hermes config set   # 设置单个配置项
-hermes gateway      # 启动消息网关（Telegram、Discord 等）
-hermes setup        # 运行完整设置向导（一次性配置所有内容）
-hermes claw migrate # 从 OpenClaw 迁移（如果来自 OpenClaw）
-hermes update       # 更新到最新版本
-hermes doctor       # 诊断问题
+gpucloud cluster check --file gpucloud.yaml
 ```
 
-📖 **[完整文档 →](https://hermes-agent.nousresearch.com/docs/)**
-
----
-
-## 省去到处收集 API Key — Nous Portal
-
-Hermes 始终允许你使用任意服务商，这点不会改变。但如果你不想为模型、网页搜索、图像生成、TTS、云浏览器分别去申请五个不同的 API Key，**[Nous Portal](https://portal.nousresearch.com)** 用一个订阅就能覆盖全部：
-
-- **300+ 模型** — 用 `/model <name>` 随时切换
-- **Tool Gateway** — 网页搜索（Firecrawl）、图像生成（FAL）、文本转语音（OpenAI）、云浏览器（Browser Use），全部通过订阅托管。无需额外注册任何账户。
-
-全新安装时一条命令即可：
+单节点 Megatron-LM 训练 SSH 路径：
 
 ```bash
-hermes setup --portal
+gpucloud train dry-run --file gpucloud.yaml
+gpucloud train start --file gpucloud.yaml --yes
+gpucloud train status --limit 10
+gpucloud train logs <job-id> --lines 100
 ```
 
-它会通过 OAuth 登录、把 Nous 设为推理服务商，并启用 Tool Gateway。随时用 `hermes portal status` 查看路由状态。完整说明见 [Tool Gateway 文档](https://hermes-agent.nousresearch.com/docs/user-guide/features/tool-gateway)。
-
-你随时可以按工具单独切回自己的 API Key — Gateway 是按工具粒度生效的，不是一刀切。
-
----
-
-## CLI 与消息平台 快速对照
-
-Hermes 有两种入口：用 `hermes` 启动终端 UI，或运行网关从 Telegram、Discord、Slack、WhatsApp、Signal 或 Email 与之对话。进入对话后，许多斜杠命令在两种界面中通用。
-
-| 操作 | CLI | 消息平台 |
-|------|-----|----------|
-| 开始对话 | `hermes` | 运行 `hermes gateway setup` + `hermes gateway start`，然后给机器人发消息 |
-| 开始新对话 | `/new` 或 `/reset` | `/new` 或 `/reset` |
-| 更换模型 | `/model [provider:model]` | `/model [provider:model]` |
-| 设置人格 | `/personality [name]` | `/personality [name]` |
-| 重试或撤销上一轮 | `/retry`、`/undo` | `/retry`、`/undo` |
-| 压缩上下文 / 查看用量 | `/compress`、`/usage`、`/insights [--days N]` | `/compress`、`/usage`、`/insights [days]` |
-| 浏览技能 | `/skills` 或 `/<skill-name>` | `/skills` 或 `/<skill-name>` |
-| 中断当前工作 | `Ctrl+C` 或发送新消息 | `/stop` 或发送新消息 |
-| 平台特定状态 | `/platforms` | `/status`、`/sethome` |
-
-完整命令列表请参阅 [CLI 指南](https://hermes-agent.nousresearch.com/docs/user-guide/cli) 和 [消息网关指南](https://hermes-agent.nousresearch.com/docs/user-guide/messaging)。
-
----
-
-## 文档
-
-所有文档位于 **[hermes-agent.nousresearch.com/docs](https://hermes-agent.nousresearch.com/docs/)**：
-
-| 章节 | 内容 |
-|------|------|
-| [快速开始](https://hermes-agent.nousresearch.com/docs/getting-started/quickstart) | 安装 → 设置 → 2 分钟内开始首次对话 |
-| [CLI 使用](https://hermes-agent.nousresearch.com/docs/user-guide/cli) | 命令、快捷键、人格、会话 |
-| [配置](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) | 配置文件、提供商、模型、所有选项 |
-| [消息网关](https://hermes-agent.nousresearch.com/docs/user-guide/messaging) | Telegram、Discord、Slack、WhatsApp、Signal、Home Assistant |
-| [安全](https://hermes-agent.nousresearch.com/docs/user-guide/security) | 命令审批、DM 配对、容器隔离 |
-| [工具与工具集](https://hermes-agent.nousresearch.com/docs/user-guide/features/tools) | 40+ 工具、工具集系统、终端后端 |
-| [技能系统](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills) | 过程记忆、技能中心、创建技能 |
-| [记忆](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) | 持久记忆、用户画像、最佳实践 |
-| [MCP 集成](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp) | 连接任意 MCP 服务器扩展能力 |
-| [定时调度](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) | 定时任务与平台投递 |
-| [上下文文件](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files) | 影响每次对话的项目上下文 |
-| [架构](https://hermes-agent.nousresearch.com/docs/developer-guide/architecture) | 项目结构、代理循环、关键类 |
-| [贡献](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) | 开发设置、PR 流程、代码风格 |
-| [CLI 参考](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) | 所有命令和标志 |
-| [环境变量](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) | 完整环境变量参考 |
-
----
-
-## 从 OpenClaw 迁移
-
-如果你来自 OpenClaw，Hermes 可以自动导入你的设置、记忆、技能和 API 密钥。
-
-**首次安装时：** 安装向导（`hermes setup`）会自动检测 `~/.openclaw` 并在配置开始前提供迁移选项。
-
-**安装后任意时间：**
+checkpoint 管理：
 
 ```bash
-hermes claw migrate              # 交互式迁移（完整预设）
-hermes claw migrate --dry-run    # 预览将要迁移的内容
-hermes claw migrate --preset user-data   # 仅迁移用户数据，不含密钥
-hermes claw migrate --overwrite  # 覆盖已有冲突
+gpucloud checkpoint list --file gpucloud.yaml
+gpucloud checkpoint latest --file gpucloud.yaml
+gpucloud checkpoint validate --file gpucloud.yaml
+gpucloud checkpoint resume --file gpucloud.yaml --yes
+gpucloud checkpoint cleanup --file gpucloud.yaml --keep 3 --yes
 ```
 
-导入内容：
-- **SOUL.md** — 人格文件
-- **记忆** — MEMORY.md 和 USER.md 条目
-- **技能** — 用户创建的技能 → `~/.hermes/skills/openclaw-imports/`
-- **命令白名单** — 审批模式
-- **消息设置** — 平台配置、允许用户、工作目录
-- **API 密钥** — 白名单中的密钥（Telegram、OpenRouter、OpenAI、Anthropic、ElevenLabs）
-- **TTS 资产** — 工作区音频文件
-- **工作区指令** — AGENTS.md（使用 `--workspace-target`）
-
-使用 `hermes claw migrate --help` 查看所有选项，或使用 `openclaw-migration` 技能进行交互式代理引导迁移（含干运行预览）。
-
----
-
-## 贡献
-
-欢迎贡献！请参阅 [贡献指南](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) 了解开发设置、代码风格和 PR 流程。
-
-贡献者快速开始——克隆并使用 `setup-hermes.sh`：
+vLLM 推理服务：
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
-cd hermes-agent
-./setup-hermes.sh     # 安装 uv、创建 venv、安装 .[all]、创建符号链接 ~/.local/bin/hermes
-./hermes              # 自动检测 venv，无需先 source
+gpucloud infer dry-run --file gpucloud.yaml
+gpucloud infer start --file gpucloud.yaml --yes
+gpucloud infer status --limit 10
+gpucloud infer health <job-id> --file gpucloud.yaml
+gpucloud infer stop <job-id> --file gpucloud.yaml --yes
 ```
 
-手动安装（等效于上述命令）：
+每台训练子机执行本机 worker：
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+gpucloud worker wait --task-file /data/gpucloud/task.yaml
+gpucloud worker preflight --task-file /data/gpucloud/task.yaml
+gpucloud worker dry-run --task-file /data/gpucloud/task.yaml
+gpucloud worker start --task-file /data/gpucloud/task.yaml --yes
+gpucloud worker status --job-id gpt-pretrain-001
+gpucloud worker logs --job-id gpt-pretrain-001 --lines 100
+gpucloud worker stop --job-id gpt-pretrain-001 --yes
+```
+
+`worker start` 和 `worker stop` 必须显式传 `--yes`。`worker dry-run` 永远不会启动训练进程。
+
+## `gpucloud.yaml`
+
+最小集群配置：
+
+```yaml
+clusters:
+  - name: prod
+    nodes:
+      - host: 10.0.0.1
+        port: 22
+        user: ubuntu
+        ssh_key: ~/.ssh/id_rsa
+
+dataset_name: my-dataset
+model_name: llama-3-8b
+```
+
+默认规则：
+
+- `training.framework` 默认为 `megatron-lm`。
+- 未显式配置 `training.command` 时，会生成 Megatron-LM `torchrun` 命令。
+- `inference.engine` 默认为 `vllm`。
+- `inference.port` 默认为 `8000`。
+- 日志和 checkpoint 路径会从节点 workdir 推导。
+- 远程执行默认要求先 dry-run。
+
+## 分布式 Worker Task 文件
+
+主节点调度器或用户脚本为每台机器生成一份 `gpucloud-worker-task.yaml`。所有文件共享 `job_id`、`nnodes`、`master_addr`、`master_port`，但每台机器的 `node_rank` 不同。
+
+完整起步文件见 [gpucloud-worker-task.yaml.example](gpucloud-worker-task.yaml.example)。
+
+rank 2 示例：
+
+```yaml
+job_id: gpt-pretrain-001
+framework: megatron-lm
+role: worker
+
+distributed:
+  nnodes: 4
+  nproc_per_node: 1
+  node_rank: 2
+  master_addr: 10.0.0.10
+  master_port: 29500
+  start_timeout_sec: 900
+
+runtime:
+  workdir: /data/gpucloud/jobs/gpt-pretrain-001
+  megatron_lm_dir: /opt/Megatron-LM
+  python: python
+  env:
+    NCCL_DEBUG: INFO
+    NCCL_SOCKET_IFNAME: eth0
+
+training:
+  data_path: /data/datasets/tokens
+  checkpoint_dir: /data/checkpoints/gpt-pretrain-001
+  log_dir: /data/logs/gpucloud
+  extra_args:
+    - --tensor-model-parallel-size=1
+    - --pipeline-model-parallel-size=1
+    - --micro-batch-size=1
+    - --global-batch-size=4
+    - --seq-length=2048
+
+preflight:
+  require_gpu_count: 1
+  min_vram_gb: 16
+  heterogeneous_policy: warn
+```
+
+异构 GPU 策略：
+
+- `reject`：GPU 型号或显存不满足要求时 preflight 失败。
+- `warn`：报告风险，但其他硬检查通过时允许启动。
+- `allow`：只记录环境差异，不阻止。
+
+异构 GPU 下的 tensor parallel / pipeline parallel 拓扑需要通过 `training.extra_args` 或 `training.command_template` 显式配置。GPUCLOUD 第一版不会自动平衡不同 GPU 型号。
+
+## Agent 工具
+
+GPUCLOUD toolset 包含：
+
+- `gpucloud_cluster_check`
+- `gpucloud_ssh_exec`
+- `gpucloud_gpu_probe`
+- `gpucloud_train_start`
+- `gpucloud_train_status`
+- `gpucloud_train_logs`
+- `gpucloud_checkpoint_list`
+- `gpucloud_checkpoint_latest`
+- `gpucloud_checkpoint_validate`
+- `gpucloud_train_resume`
+- `gpucloud_checkpoint_cleanup`
+- `gpucloud_infer_start`
+- `gpucloud_infer_status`
+- `gpucloud_infer_health`
+- `gpucloud_infer_stop`
+- `gpucloud_goal_prepare`
+- `gpucloud_worker_wait`
+- `gpucloud_worker_preflight`
+- `gpucloud_worker_dry_run`
+- `gpucloud_worker_start`
+- `gpucloud_worker_status`
+- `gpucloud_worker_logs`
+- `gpucloud_worker_stop`
+
+worker 工具必须显式提供 `task_file` 或 `job_id`，不会自动扫描任意配置文件，也不会调度其他机器。
+
+## 开发
+
+准备开发环境：
+
+```bash
 uv venv venv --python 3.11
 source venv/bin/activate
 uv pip install -e ".[all,dev]"
-python -m pytest tests/ -q
 ```
 
----
+运行 GPUCLOUD 相关测试：
 
-## 社区
+```bash
+venv/bin/python -m pytest \
+  tests/hermes_cli/test_gpucloud_worker_task.py \
+  tests/hermes_cli/test_gpucloud_distributed.py \
+  tests/hermes_cli/test_gpucloud_worker.py \
+  tests/hermes_cli/test_gpucloud_train.py \
+  tests/hermes_cli/test_gpucloud_inference.py -q
+```
 
-- 💬 [Discord](https://discord.gg/NousResearch)
-- 📚 [技能中心](https://agentskills.io)
-- 🐛 [问题反馈](https://github.com/NousResearch/hermes-agent/issues)
-- 💡 [讨论区](https://github.com/NousResearch/hermes-agent/discussions)
-- 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — 社区微信桥接：在同一微信账号上运行 Hermes Agent 和 OpenClaw。
+运行完整隔离测试：
 
----
+```bash
+scripts/run_tests.sh
+```
 
-## 许可证
+## 安全边界
 
-MIT — 详见 [LICENSE](LICENSE)。
+- 远程 SSH 训练和推理默认 dry-run。
+- 本机 worker start/stop 必须传 `--yes`。
+- task 文件不要写入 SSH 私钥或明文 token。
+- worker plan 会脱敏疑似 secret 的环境变量。
+- 日志只返回 tail，避免把完整日志塞进 Agent 上下文。
+- `training.command_template` 视为来自可信主节点或用户的高权限输入。
 
-由 [Nous Research](https://nousresearch.com) 构建。
+## License
+
+MIT。详见 [LICENSE](LICENSE)。

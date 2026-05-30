@@ -31,6 +31,15 @@ from hermes_cli.gpucloud_train import (
     run_train_start,
     run_train_status,
 )
+from hermes_cli.gpucloud_worker import (
+    run_worker_dry_run,
+    run_worker_logs,
+    run_worker_preflight,
+    run_worker_start,
+    run_worker_status,
+    run_worker_stop,
+    run_worker_wait,
+)
 from tools.registry import registry, tool_error, tool_result
 
 
@@ -287,6 +296,91 @@ def gpucloud_goal_prepare_handler(args: Dict[str, Any], **kwargs) -> str:
     return tool_result(success=True, data=data)
 
 
+def _task_file_arg(args: Dict[str, Any]) -> str:
+    return str(args.get("task_file") or "").strip()
+
+
+def gpucloud_worker_wait_handler(args: Dict[str, Any], **kwargs) -> str:
+    task_file = _task_file_arg(args)
+    if not task_file:
+        return tool_error("task_file is required", success=False)
+    data = run_worker_wait(
+        task_file=task_file,
+        timeout_sec=int(args.get("timeout_sec", 30) or 30),
+        wait_for_master=bool(args.get("wait_for_master")),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "worker wait failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_worker_preflight_handler(args: Dict[str, Any], **kwargs) -> str:
+    task_file = _task_file_arg(args)
+    if not task_file:
+        return tool_error("task_file is required", success=False)
+    data = run_worker_preflight(
+        task_file=task_file,
+        check_network=bool(args.get("check_network", True)),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "worker preflight failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_worker_dry_run_handler(args: Dict[str, Any], **kwargs) -> str:
+    task_file = _task_file_arg(args)
+    if not task_file:
+        return tool_error("task_file is required", success=False)
+    data = run_worker_dry_run(task_file=task_file)
+    if not data.get("ok"):
+        return tool_error(data.get("error", "worker dry-run failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_worker_start_handler(args: Dict[str, Any], **kwargs) -> str:
+    task_file = _task_file_arg(args)
+    if not task_file:
+        return tool_error("task_file is required", success=False)
+    data = run_worker_start(
+        task_file=task_file,
+        confirm_execute=bool(args.get("confirm_execute")),
+        skip_preflight=False,
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "worker start failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_worker_status_handler(args: Dict[str, Any], **kwargs) -> str:
+    job_id = str(args.get("job_id") or "").strip()
+    if not job_id:
+        return tool_error("job_id is required", success=False)
+    data = run_worker_status(job_id=job_id)
+    if not data.get("ok"):
+        return tool_error(data.get("error", "worker status failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_worker_logs_handler(args: Dict[str, Any], **kwargs) -> str:
+    job_id = str(args.get("job_id") or "").strip()
+    if not job_id:
+        return tool_error("job_id is required", success=False)
+    data = run_worker_logs(job_id=job_id, lines=int(args.get("lines", 50) or 50))
+    if not data.get("ok"):
+        return tool_error(data.get("error", "worker logs failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_worker_stop_handler(args: Dict[str, Any], **kwargs) -> str:
+    job_id = str(args.get("job_id") or "").strip()
+    if not job_id:
+        return tool_error("job_id is required", success=False)
+    data = run_worker_stop(job_id=job_id, confirm_stop=bool(args.get("confirm_stop")))
+    if not data.get("ok"):
+        return tool_error(data.get("error", "worker stop failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
 def gpucloud_checkpoint_list_handler(args: Dict[str, Any], **kwargs) -> str:
     data = run_checkpoint_list(
         config_file=args.get("config_file"),
@@ -527,6 +621,86 @@ CHECKPOINT_CLEANUP_SCHEMA = {
     "required": [],
 }
 
+WORKER_TASK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "task_file": {
+            "type": "string",
+            "description": "Path to the per-node gpucloud-worker-task.yaml file",
+        },
+    },
+    "required": ["task_file"],
+}
+
+WORKER_WAIT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        **WORKER_TASK_SCHEMA["properties"],
+        "timeout_sec": {
+            "type": "integer",
+            "description": "Seconds to wait for the task file (default 30)",
+        },
+        "wait_for_master": {
+            "type": "boolean",
+            "description": "For non-rank0 workers, also wait for master_addr:master_port",
+        },
+    },
+    "required": ["task_file"],
+}
+
+WORKER_PREFLIGHT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        **WORKER_TASK_SCHEMA["properties"],
+        "check_network": {
+            "type": "boolean",
+            "description": "Check rendezvous port reachability/bindability (default true)",
+        },
+    },
+    "required": ["task_file"],
+}
+
+WORKER_START_SCHEMA = {
+    "type": "object",
+    "properties": {
+        **WORKER_TASK_SCHEMA["properties"],
+        "confirm_execute": {
+            "type": "boolean",
+            "description": "Must be true to start the local worker process",
+        },
+    },
+    "required": ["task_file"],
+}
+
+WORKER_JOB_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "job_id": {"type": "string", "description": "Distributed worker job id"},
+    },
+    "required": ["job_id"],
+}
+
+WORKER_LOGS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        **WORKER_JOB_SCHEMA["properties"],
+        "lines": {"type": "integer", "description": "Tail lines (default 50, max 500)"},
+    },
+    "required": ["job_id"],
+}
+
+WORKER_STOP_SCHEMA = {
+    "type": "object",
+    "properties": {
+        **WORKER_JOB_SCHEMA["properties"],
+        "confirm_stop": {
+            "type": "boolean",
+            "description": "Must be true to stop the local worker process",
+        },
+    },
+    "required": ["job_id"],
+}
+
 
 registry.register(
     name="gpucloud_train_start",
@@ -763,6 +937,132 @@ registry.register(
     handler=gpucloud_checkpoint_cleanup_handler,
     check_fn=check_gpucloud_tools_requirements,
     emoji="[CHECKPOINT]",
+)
+
+registry.register(
+    name="gpucloud_worker_wait",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_worker_wait",
+            "description": (
+                "Wait for a per-node GPUCLOUD worker task file, validate rank settings, "
+                "and optionally wait for the Megatron rendezvous address. Does not start training."
+            ),
+            "parameters": WORKER_WAIT_SCHEMA,
+        },
+    },
+    handler=gpucloud_worker_wait_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[TRAIN]",
+)
+
+registry.register(
+    name="gpucloud_worker_preflight",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_worker_preflight",
+            "description": (
+                "Run local distributed Megatron worker preflight checks: GPU, CUDA/PyTorch/NCCL, "
+                "paths, Megatron entrypoint, and rendezvous network."
+            ),
+            "parameters": WORKER_PREFLIGHT_SCHEMA,
+        },
+    },
+    handler=gpucloud_worker_preflight_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[TRAIN]",
+)
+
+registry.register(
+    name="gpucloud_worker_dry_run",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_worker_dry_run",
+            "description": (
+                "Render the local torchrun/Megatron command for this worker rank from "
+                "gpucloud-worker-task.yaml. Never starts a process."
+            ),
+            "parameters": WORKER_TASK_SCHEMA,
+        },
+    },
+    handler=gpucloud_worker_dry_run_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[TRAIN]",
+)
+
+registry.register(
+    name="gpucloud_worker_start",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_worker_start",
+            "description": (
+                "Start this machine's local Megatron worker rank from a distributed task file. "
+                "Requires confirm_execute=true; GPUCLOUD starts/monitors only the local process."
+            ),
+            "parameters": WORKER_START_SCHEMA,
+        },
+    },
+    handler=gpucloud_worker_start_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[TRAIN]",
+)
+
+registry.register(
+    name="gpucloud_worker_status",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_worker_status",
+            "description": "Get local status for a distributed Megatron worker job.",
+            "parameters": WORKER_JOB_SCHEMA,
+        },
+    },
+    handler=gpucloud_worker_status_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[TRAIN]",
+)
+
+registry.register(
+    name="gpucloud_worker_logs",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_worker_logs",
+            "description": "Tail the local log file for a distributed Megatron worker job.",
+            "parameters": WORKER_LOGS_SCHEMA,
+        },
+    },
+    handler=gpucloud_worker_logs_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[TRAIN]",
+)
+
+registry.register(
+    name="gpucloud_worker_stop",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_worker_stop",
+            "description": (
+                "Stop a local distributed Megatron worker process. Requires confirm_stop=true."
+            ),
+            "parameters": WORKER_STOP_SCHEMA,
+        },
+    },
+    handler=gpucloud_worker_stop_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[TRAIN]",
 )
 
 registry.register(

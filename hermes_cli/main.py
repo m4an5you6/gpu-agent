@@ -12873,6 +12873,129 @@ Examples:
     infer_parser.set_defaults(func=cmd_infer)
 
     # =========================================================================
+    # worker command (GPUCLOUD phase 9.5 — local distributed Megatron rank)
+    # =========================================================================
+    worker_parser = subparsers.add_parser(
+        "worker",
+        help="Distributed Megatron worker: wait, preflight, dry-run, start, status",
+        description=(
+            "Manage this machine's local GPUCLOUD worker rank from a "
+            "gpucloud-worker-task.yaml file. The coordinator distributes task "
+            "files; each worker starts only its local Megatron/PyTorch process."
+        ),
+    )
+    worker_sub = worker_parser.add_subparsers(dest="worker_command")
+
+    def _worker_task_args(p):
+        p.add_argument(
+            "--task-file",
+            required=True,
+            help="Path to this node's gpucloud-worker-task.yaml",
+        )
+
+    worker_wait = worker_sub.add_parser("wait", help="Wait for and validate a task file")
+    _worker_task_args(worker_wait)
+    worker_wait.add_argument("--timeout-sec", type=int, default=900)
+    worker_wait.add_argument(
+        "--wait-for-master",
+        action="store_true",
+        help="Also wait until master_addr:master_port is reachable on non-rank0 nodes",
+    )
+
+    worker_preflight = worker_sub.add_parser("preflight", help="Run local worker checks")
+    _worker_task_args(worker_preflight)
+    worker_preflight.add_argument(
+        "--skip-network",
+        action="store_true",
+        help="Skip rendezvous network check",
+    )
+
+    worker_dry = worker_sub.add_parser("dry-run", help="Show local torchrun plan")
+    _worker_task_args(worker_dry)
+
+    worker_start = worker_sub.add_parser("start", help="Start local Megatron worker")
+    _worker_task_args(worker_start)
+    worker_start.add_argument(
+        "--yes",
+        action="store_true",
+        help="Confirm local process start",
+    )
+
+    worker_status = worker_sub.add_parser("status", help="Show local worker status")
+    worker_status.add_argument("--job-id", required=True)
+
+    worker_logs = worker_sub.add_parser("logs", help="Tail local worker log")
+    worker_logs.add_argument("--job-id", required=True)
+    worker_logs.add_argument("--lines", type=int, default=50)
+
+    worker_stop = worker_sub.add_parser("stop", help="Stop local worker process")
+    worker_stop.add_argument("--job-id", required=True)
+    worker_stop.add_argument(
+        "--yes",
+        action="store_true",
+        help="Confirm local process stop",
+    )
+
+    def cmd_worker(args):
+        import json
+
+        from hermes_cli.gpucloud_worker import (
+            run_worker_dry_run,
+            run_worker_logs,
+            run_worker_preflight,
+            run_worker_start,
+            run_worker_status,
+            run_worker_stop,
+            run_worker_wait,
+        )
+
+        sub = getattr(args, "worker_command", None)
+        if sub == "wait":
+            result = run_worker_wait(
+                task_file=getattr(args, "task_file"),
+                timeout_sec=getattr(args, "timeout_sec", 900),
+                wait_for_master=bool(getattr(args, "wait_for_master", False)),
+            )
+        elif sub == "preflight":
+            result = run_worker_preflight(
+                task_file=getattr(args, "task_file"),
+                check_network=not bool(getattr(args, "skip_network", False)),
+            )
+        elif sub == "dry-run":
+            result = run_worker_dry_run(task_file=getattr(args, "task_file"))
+        elif sub == "start":
+            if not getattr(args, "yes", False):
+                print("Refusing to start without --yes (local worker execution).")
+                return 1
+            result = run_worker_start(
+                task_file=getattr(args, "task_file"),
+                confirm_execute=True,
+                skip_preflight=False,
+            )
+        elif sub == "status":
+            result = run_worker_status(job_id=getattr(args, "job_id"))
+        elif sub == "logs":
+            result = run_worker_logs(
+                job_id=getattr(args, "job_id"),
+                lines=getattr(args, "lines", 50),
+            )
+        elif sub == "stop":
+            if not getattr(args, "yes", False):
+                print("Refusing to stop without --yes (local worker execution).")
+                return 1
+            result = run_worker_stop(
+                job_id=getattr(args, "job_id"),
+                confirm_stop=True,
+            )
+        else:
+            worker_parser.print_help()
+            return 1
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result.get("ok") else 1
+
+    worker_parser.set_defaults(func=cmd_worker)
+
+    # =========================================================================
     # pairing command
     # =========================================================================
     pairing_parser = subparsers.add_parser(

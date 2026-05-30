@@ -1,0 +1,40 @@
+# Per-node GPUCLOUD worker task file.
+# The coordinator or user script should generate one copy per machine.
+# All nodes share job_id/nnodes/master_addr/master_port; node_rank differs.
+
+job_id: gpt-pretrain-001
+framework: megatron-lm
+role: worker
+
+distributed:
+  nnodes: 4
+  nproc_per_node: 1
+  node_rank: 0
+  master_addr: 10.0.0.10
+  master_port: 29500
+  start_timeout_sec: 900
+
+runtime:
+  workdir: /data/gpucloud/jobs/gpt-pretrain-001
+  megatron_lm_dir: /opt/Megatron-LM
+  python: python
+  env:
+    NCCL_DEBUG: INFO
+    NCCL_SOCKET_IFNAME: eth0
+
+training:
+  data_path: /data/datasets/tokens
+  checkpoint_dir: /data/checkpoints/gpt-pretrain-001
+  log_dir: /data/logs/gpucloud
+  extra_args:
+    - --tensor-model-parallel-size=1
+    - --pipeline-model-parallel-size=1
+    - --micro-batch-size=1
+    - --global-batch-size=4
+    - --seq-length=2048
+    - --save-interval=1000
+
+preflight:
+  require_gpu_count: 1
+  min_vram_gb: 16
+  heterogeneous_policy: warn

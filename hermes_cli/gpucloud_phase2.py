@@ -111,6 +111,13 @@ GPUCLOUD_CORE_TOOLS: list[str] = [
     "gpucloud_checkpoint_validate",
     "gpucloud_train_resume",
     "gpucloud_checkpoint_cleanup",
+    "gpucloud_worker_wait",
+    "gpucloud_worker_preflight",
+    "gpucloud_worker_dry_run",
+    "gpucloud_worker_start",
+    "gpucloud_worker_status",
+    "gpucloud_worker_logs",
+    "gpucloud_worker_stop",
 ]
 
 # Bundled plugin keys (path-derived) not auto-loaded in phase 2.
