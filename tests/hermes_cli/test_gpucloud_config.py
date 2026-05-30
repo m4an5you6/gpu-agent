@@ -102,7 +102,8 @@ def test_goal_set_loads_context(tmp_path, monkeypatch):
     mgr.set("train the model")
     msg = mgr.initial_user_message()
     assert msg is not None
-    assert "[GPUCLOUD cluster config" in msg
+    assert "[GPUCLOUD goal context" in msg
+    assert "gpucloud_goal_prepare" in msg
     assert "my-dataset" in msg
     assert "train the model" in msg
 

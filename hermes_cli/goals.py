@@ -159,6 +159,9 @@ class GoalState:
     # them into the verdict. Backwards-compatible: defaults to empty so
     # old state_meta rows load unchanged.
     subgoals: List[str] = field(default_factory=list)
+    # True when this goal is an ML training/inference workflow that should
+    # activate gpucloud.yaml context. Generic goals remain supported.
+    gpucloud_goal: bool = False
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False)
@@ -182,6 +185,12 @@ class GoalState:
             paused_reason=data.get("paused_reason"),
             consecutive_parse_failures=int(data.get("consecutive_parse_failures", 0) or 0),
             subgoals=subgoals,
+            gpucloud_goal=bool(
+                data.get(
+                    "gpucloud_goal",
+                    _looks_like_gpucloud_goal(data.get("goal", "")),
+                )
+            ),
         )
 
     # --- subgoals helpers -------------------------------------------------
@@ -277,6 +286,15 @@ def clear_goal(session_id: str) -> None:
         return
     state.status = "cleared"
     save_goal(session_id, state)
+
+
+def _looks_like_gpucloud_goal(goal: str) -> bool:
+    try:
+        from hermes_cli.gpucloud_goal import is_gpucloud_goal
+
+        return is_gpucloud_goal(goal)
+    except Exception:
+        return False
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -525,7 +543,11 @@ class GoalManager:
         goal = (goal or "").strip()
         if not goal:
             raise ValueError("goal text is empty")
-        self._load_gpucloud_context_for_goal()
+        gpucloud_goal = _looks_like_gpucloud_goal(goal)
+        if gpucloud_goal:
+            self._load_gpucloud_context_for_goal(goal)
+        else:
+            self._clear_gpucloud_context()
         state = GoalState(
             goal=goal,
             status="active",
@@ -533,6 +555,7 @@ class GoalManager:
             max_turns=int(max_turns) if max_turns else self.default_max_turns,
             created_at=time.time(),
             last_turn_at=0.0,
+            gpucloud_goal=gpucloud_goal,
         )
         self._state = state
         save_goal(self.session_id, state)
@@ -549,7 +572,11 @@ class GoalManager:
     def resume(self, *, reset_budget: bool = True) -> Optional[GoalState]:
         if not self._state:
             return None
-        self._load_gpucloud_context_for_goal()
+        if self._state.gpucloud_goal or _looks_like_gpucloud_goal(self._state.goal):
+            self._load_gpucloud_context_for_goal(self._state.goal)
+            self._state.gpucloud_goal = True
+        else:
+            self._clear_gpucloud_context()
         self._state.status = "active"
         self._state.paused_reason = None
         if reset_budget:
@@ -564,11 +591,15 @@ class GoalManager:
         save_goal(self.session_id, self._state)
         self._state = None
         self._gpucloud_context = None
+        self._clear_gpucloud_context()
+
+    def _clear_gpucloud_context(self) -> None:
         from hermes_cli.gpucloud_context import clear_goal_gpucloud_config
 
+        self._gpucloud_context = None
         clear_goal_gpucloud_config()
 
-    def _load_gpucloud_context_for_goal(self) -> None:
+    def _load_gpucloud_context_for_goal(self, goal: str = "") -> None:
         """Load gpucloud.yaml — only when starting a /goal (phase 4)."""
         from hermes_cli.gpucloud_config import (
             GpucloudConfigError,
@@ -588,7 +619,14 @@ class GoalManager:
         )
 
         set_goal_gpucloud_config(prepared)
-        self._gpucloud_context = prepared.context_block_for_goal()
+        self._gpucloud_context = prepared.context_block_for_goal(goal=goal)
+
+    def _ensure_gpucloud_context_for_goal(self) -> None:
+        if not self._state or not self._state.gpucloud_goal:
+            return
+        if self._gpucloud_context:
+            return
+        self._load_gpucloud_context_for_goal(self._state.goal)
 
     def _wrap_goal_message(self, message: str) -> str:
         if not self._gpucloud_context:
@@ -599,6 +637,7 @@ class GoalManager:
         """First user turn after /goal — includes GPUCLOUD config context."""
         if not self._state or self._state.status != "active":
             return None
+        self._ensure_gpucloud_context_for_goal()
         return self._wrap_goal_message(self._state.goal)
 
     def mark_done(self, reason: str) -> None:
@@ -780,6 +819,7 @@ class GoalManager:
     def next_continuation_prompt(self) -> Optional[str]:
         if not self._state or self._state.status != "active":
             return None
+        self._ensure_gpucloud_context_for_goal()
         if self._state.subgoals:
             base = CONTINUATION_PROMPT_WITH_SUBGOALS_TEMPLATE.format(
                 goal=self._state.goal,

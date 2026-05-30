@@ -105,6 +105,7 @@ GPUCLOUD_CORE_TOOLS: list[str] = [
     "gpucloud_infer_status",
     "gpucloud_infer_health",
     "gpucloud_infer_stop",
+    "gpucloud_goal_prepare",
     "gpucloud_checkpoint_list",
     "gpucloud_checkpoint_latest",
     "gpucloud_checkpoint_validate",

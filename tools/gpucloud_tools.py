@@ -25,6 +25,7 @@ from hermes_cli.gpucloud_inference import (
     run_infer_status,
     run_infer_stop,
 )
+from hermes_cli.gpucloud_goal import run_goal_prepare
 from hermes_cli.gpucloud_train import (
     run_train_logs,
     run_train_start,
@@ -273,6 +274,19 @@ def gpucloud_infer_stop_handler(args: Dict[str, Any], **kwargs) -> str:
     return tool_result(success=True, data=data)
 
 
+def gpucloud_goal_prepare_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_goal_prepare(
+        goal=args.get("goal") or "",
+        mode=args.get("mode"),
+        config_file=args.get("config_file"),
+        cluster_name=args.get("cluster"),
+        node_index=int(args.get("node_index", 0) or 0),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "goal preparation failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
 def gpucloud_checkpoint_list_handler(args: Dict[str, Any], **kwargs) -> str:
     data = run_checkpoint_list(
         config_file=args.get("config_file"),
@@ -421,6 +435,25 @@ INFER_STOP_SCHEMA = {
             "type": "boolean",
             "description": "Must be true to stop the remote vLLM process",
         },
+    },
+    "required": [],
+}
+
+GOAL_PREPARE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "goal": {
+            "type": "string",
+            "description": "User goal text; used to infer train vs inference when mode is omitted",
+        },
+        "mode": {
+            "type": "string",
+            "enum": ["train", "infer", "train_and_infer"],
+            "description": "Optional explicit workflow mode",
+        },
+        "cluster": {"type": "string", "description": "Cluster name from gpucloud.yaml"},
+        "node_index": {"type": "integer", "description": "Node index (default 0)"},
+        "config_file": {"type": "string"},
     },
     "required": [],
 }
@@ -618,6 +651,26 @@ registry.register(
     handler=gpucloud_infer_stop_handler,
     check_fn=check_gpucloud_tools_requirements,
     emoji="[INFER]",
+)
+
+registry.register(
+    name="gpucloud_goal_prepare",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_goal_prepare",
+            "description": (
+                "Phase-9 /goal preparation: run GPUCLOUD cluster check first, then "
+                "produce dry-run training and/or vLLM inference plans. Never starts "
+                "remote work and stops before dry-run if the cluster probe fails."
+            ),
+            "parameters": GOAL_PREPARE_SCHEMA,
+        },
+    },
+    handler=gpucloud_goal_prepare_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[GOAL]",
 )
 
 registry.register(

@@ -336,15 +336,11 @@ class GpucloudPreparedConfig:
             )
         return lines
 
-    def context_block_for_goal(self) -> str:
+    def context_block_for_goal(self, goal: str = "") -> str:
         """Injected into /goal user messages only."""
-        summary = "\n".join(self.summary_lines())
-        return (
-            "[GPUCLOUD cluster config — use for ML train/infer steps]\n"
-            f"{summary}\n"
-            "Do not read or print SSH private key contents. "
-            "Prefer dry-run before remote execution when security.dry_run_required is true."
-        )
+        from hermes_cli.gpucloud_goal import build_goal_context_block
+
+        return build_goal_context_block(self, goal=goal)
 
 
 def load_raw_yaml(path: Path) -> Dict[str, Any]:
