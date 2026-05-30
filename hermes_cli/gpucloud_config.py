@@ -7,6 +7,7 @@ activates (see ``GoalManager.set``). Never at CLI/Agent startup.
 from __future__ import annotations
 
 import os
+import shlex
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -188,7 +189,7 @@ def merge_gpucloud_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(training, dict):
         training = {}
         out["training"] = training
-    training.setdefault("framework", "torchrun")
+    training.setdefault("framework", "megatron-lm")
     training.setdefault("env", {})
     training.setdefault(
         "log_dir",
@@ -240,6 +241,15 @@ def _gpu_count_for_command(data: Dict[str, Any]) -> int:
     return 1
 
 
+def _quote_remote_arg(value: str) -> str:
+    text = str(value or "").strip()
+    if text == "~":
+        return "$HOME"
+    if text.startswith("~/"):
+        return "$HOME/" + shlex.quote(text[2:])
+    return shlex.quote(text)
+
+
 def generate_training_command(data: Dict[str, Any]) -> str:
     training = data.get("training") or {}
     if isinstance(training, dict) and training.get("command"):
@@ -254,10 +264,12 @@ def generate_training_command(data: Dict[str, Any]) -> str:
         checkpoint_dir = f"{workdir}/checkpoints/{effective_model}"
 
     nproc = _gpu_count_for_command(data)
+    megatron_script = "${MEGATRON_LM_DIR:-./Megatron-LM}/pretrain_gpt.py"
     return (
-        f"torchrun --nproc_per_node={nproc} train.py "
-        f"--dataset {effective_dataset} --model {effective_model} "
-        f"--output_dir {checkpoint_dir}"
+        f"torchrun --nproc_per_node={nproc} {megatron_script} "
+        f"--data-path {_quote_remote_arg(effective_dataset)} "
+        f"--save {_quote_remote_arg(checkpoint_dir)} "
+        f"--load {_quote_remote_arg(checkpoint_dir)}"
     )
 
 

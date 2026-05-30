@@ -12578,6 +12578,301 @@ Examples:
     cluster_parser.set_defaults(func=cmd_cluster)
 
     # =========================================================================
+    # train command (GPUCLOUD phase 6)
+    # =========================================================================
+    train_parser = subparsers.add_parser(
+        "train",
+        help="Training jobs: dry-run, start, status, logs",
+        description="Single-node Megatron-LM training via gpucloud.yaml",
+    )
+    train_sub = train_parser.add_subparsers(dest="train_command")
+
+    def _train_common_args(p):
+        p.add_argument("--file", "-f", dest="gpucloud_config_file")
+        p.add_argument("--cluster", dest="gpucloud_cluster")
+        p.add_argument("--node", dest="gpucloud_node", type=int, default=0)
+
+    train_dry = train_sub.add_parser("dry-run", help="Show training launch plan")
+    _train_common_args(train_dry)
+
+    train_start = train_sub.add_parser("start", help="Launch training on remote node")
+    _train_common_args(train_start)
+    train_start.add_argument(
+        "--yes",
+        action="store_true",
+        help="Confirm remote execution (required to start)",
+    )
+
+    train_status = train_sub.add_parser("status", help="Job status")
+    train_status.add_argument("--job-id", dest="gpucloud_job_id")
+    train_status.add_argument("--limit", type=int, default=10)
+
+    train_logs = train_sub.add_parser("logs", help="Tail remote training log")
+    train_logs.add_argument("gpucloud_job_id", nargs="?")
+    train_logs.add_argument("--lines", type=int, default=50)
+
+    def cmd_train(args):
+        import json
+
+        from hermes_cli.gpucloud_train import (
+            run_train_logs,
+            run_train_start,
+            run_train_status,
+        )
+
+        sub = getattr(args, "train_command", None)
+        if sub == "dry-run":
+            result = run_train_start(
+                config_file=getattr(args, "gpucloud_config_file", None),
+                cluster_name=getattr(args, "gpucloud_cluster", None),
+                node_index=getattr(args, "gpucloud_node", 0) or 0,
+                dry_run=True,
+                confirm_execute=False,
+                allow_discover_without_goal=True,
+            )
+        elif sub == "start":
+            if not getattr(args, "yes", False):
+                print("Refusing to start without --yes (remote execution).")
+                return 1
+            result = run_train_start(
+                config_file=getattr(args, "gpucloud_config_file", None),
+                cluster_name=getattr(args, "gpucloud_cluster", None),
+                node_index=getattr(args, "gpucloud_node", 0) or 0,
+                dry_run=False,
+                confirm_execute=True,
+                allow_discover_without_goal=True,
+            )
+        elif sub == "status":
+            result = run_train_status(
+                job_id=getattr(args, "gpucloud_job_id", None),
+                limit=getattr(args, "limit", 10),
+            )
+        elif sub == "logs":
+            jid = getattr(args, "gpucloud_job_id", None)
+            if not jid:
+                train_parser.print_help()
+                return 1
+            result = run_train_logs(jid, lines=getattr(args, "lines", 50))
+        else:
+            train_parser.print_help()
+            return 1
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result.get("ok") else 1
+
+    train_parser.set_defaults(func=cmd_train)
+
+    # =========================================================================
+    # checkpoint command (GPUCLOUD phase 7)
+    # =========================================================================
+    checkpoint_parser = subparsers.add_parser(
+        "checkpoint",
+        help="Checkpoint list, validate, resume, cleanup",
+        description="Manage remote training checkpoints via gpucloud.yaml",
+    )
+    checkpoint_sub = checkpoint_parser.add_subparsers(dest="checkpoint_command")
+
+    def _checkpoint_common_args(p):
+        p.add_argument("--file", "-f", dest="gpucloud_config_file")
+        p.add_argument("--cluster", dest="gpucloud_cluster")
+        p.add_argument("--node", dest="gpucloud_node", type=int, default=0)
+
+    checkpoint_list = checkpoint_sub.add_parser("list", help="List checkpoints")
+    _checkpoint_common_args(checkpoint_list)
+    checkpoint_list.add_argument("--limit", type=int, default=20)
+
+    checkpoint_latest = checkpoint_sub.add_parser("latest", help="Show latest checkpoint")
+    _checkpoint_common_args(checkpoint_latest)
+
+    checkpoint_validate = checkpoint_sub.add_parser(
+        "validate",
+        help="Validate a checkpoint directory",
+    )
+    _checkpoint_common_args(checkpoint_validate)
+    checkpoint_validate.add_argument("checkpoint_path", nargs="?")
+
+    checkpoint_resume = checkpoint_sub.add_parser(
+        "resume",
+        help="Dry-run or launch training from a checkpoint",
+    )
+    _checkpoint_common_args(checkpoint_resume)
+    checkpoint_resume.add_argument("checkpoint_path", nargs="?")
+    checkpoint_resume.add_argument(
+        "--yes",
+        action="store_true",
+        help="Confirm remote execution (required to resume)",
+    )
+
+    checkpoint_cleanup = checkpoint_sub.add_parser(
+        "cleanup",
+        help="Remove old checkpoints (dry-run by default)",
+    )
+    _checkpoint_common_args(checkpoint_cleanup)
+    checkpoint_cleanup.add_argument("--keep", type=int, default=3)
+    checkpoint_cleanup.add_argument(
+        "--yes",
+        action="store_true",
+        help="Confirm remote deletion",
+    )
+
+    def cmd_checkpoint(args):
+        import json
+
+        from hermes_cli.gpucloud_checkpoints import (
+            run_checkpoint_cleanup,
+            run_checkpoint_latest,
+            run_checkpoint_list,
+            run_checkpoint_validate,
+            run_train_resume,
+        )
+
+        common = {
+            "config_file": getattr(args, "gpucloud_config_file", None),
+            "cluster_name": getattr(args, "gpucloud_cluster", None),
+            "node_index": getattr(args, "gpucloud_node", 0) or 0,
+            "allow_discover_without_goal": True,
+        }
+        sub = getattr(args, "checkpoint_command", None)
+        if sub == "list":
+            result = run_checkpoint_list(
+                **common,
+                limit=getattr(args, "limit", 20),
+            )
+        elif sub == "latest":
+            result = run_checkpoint_latest(**common)
+        elif sub == "validate":
+            result = run_checkpoint_validate(
+                **common,
+                checkpoint_path=getattr(args, "checkpoint_path", None),
+            )
+        elif sub == "resume":
+            result = run_train_resume(
+                **common,
+                checkpoint_path=getattr(args, "checkpoint_path", None),
+                dry_run=not getattr(args, "yes", False),
+                confirm_execute=bool(getattr(args, "yes", False)),
+            )
+        elif sub == "cleanup":
+            result = run_checkpoint_cleanup(
+                **common,
+                keep=getattr(args, "keep", 3),
+                dry_run=not getattr(args, "yes", False),
+                confirm_delete=bool(getattr(args, "yes", False)),
+            )
+        else:
+            checkpoint_parser.print_help()
+            return 1
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result.get("ok") else 1
+
+    checkpoint_parser.set_defaults(func=cmd_checkpoint)
+
+    # =========================================================================
+    # infer command (GPUCLOUD phase 8 — vLLM service management)
+    # =========================================================================
+    infer_parser = subparsers.add_parser(
+        "infer",
+        aliases=["inference"],
+        help="vLLM services: dry-run, start, status, health, stop",
+        description="Manage vLLM inference services via gpucloud.yaml",
+    )
+    infer_sub = infer_parser.add_subparsers(dest="infer_command")
+
+    def _infer_common_args(p):
+        p.add_argument("--file", "-f", dest="gpucloud_config_file")
+        p.add_argument("--cluster", dest="gpucloud_cluster")
+        p.add_argument("--node", dest="gpucloud_node", type=int, default=0)
+
+    infer_dry = infer_sub.add_parser("dry-run", help="Show vLLM launch plan")
+    _infer_common_args(infer_dry)
+
+    infer_start = infer_sub.add_parser("start", help="Launch vLLM on a remote node")
+    _infer_common_args(infer_start)
+    infer_start.add_argument(
+        "--yes",
+        action="store_true",
+        help="Confirm remote execution (required to start)",
+    )
+
+    infer_status = infer_sub.add_parser("status", help="Inference service status")
+    infer_status.add_argument("--job-id", dest="gpucloud_job_id")
+    infer_status.add_argument("--limit", type=int, default=10)
+
+    infer_health = infer_sub.add_parser("health", help="Check vLLM /health")
+    infer_health.add_argument("gpucloud_job_id", nargs="?")
+    infer_health.add_argument("--file", "-f", dest="gpucloud_config_file")
+
+    infer_stop = infer_sub.add_parser("stop", help="Stop a persisted vLLM service")
+    infer_stop.add_argument("gpucloud_job_id", nargs="?")
+    infer_stop.add_argument("--file", "-f", dest="gpucloud_config_file")
+    infer_stop.add_argument(
+        "--yes",
+        action="store_true",
+        help="Confirm remote stop",
+    )
+
+    def cmd_infer(args):
+        import json
+
+        from hermes_cli.gpucloud_inference import (
+            run_infer_health,
+            run_infer_start,
+            run_infer_status,
+            run_infer_stop,
+        )
+
+        sub = getattr(args, "infer_command", None)
+        if sub == "dry-run":
+            result = run_infer_start(
+                config_file=getattr(args, "gpucloud_config_file", None),
+                cluster_name=getattr(args, "gpucloud_cluster", None),
+                node_index=getattr(args, "gpucloud_node", 0) or 0,
+                dry_run=True,
+                confirm_execute=False,
+                allow_discover_without_goal=True,
+            )
+        elif sub == "start":
+            if not getattr(args, "yes", False):
+                print("Refusing to start without --yes (remote execution).")
+                return 1
+            result = run_infer_start(
+                config_file=getattr(args, "gpucloud_config_file", None),
+                cluster_name=getattr(args, "gpucloud_cluster", None),
+                node_index=getattr(args, "gpucloud_node", 0) or 0,
+                dry_run=False,
+                confirm_execute=True,
+                allow_discover_without_goal=True,
+            )
+        elif sub == "status":
+            result = run_infer_status(
+                job_id=getattr(args, "gpucloud_job_id", None),
+                limit=getattr(args, "limit", 10),
+            )
+        elif sub == "health":
+            result = run_infer_health(
+                getattr(args, "gpucloud_job_id", None),
+                config_file=getattr(args, "gpucloud_config_file", None),
+                allow_discover_without_goal=True,
+            )
+        elif sub == "stop":
+            if not getattr(args, "yes", False):
+                print("Refusing to stop without --yes (remote execution).")
+                return 1
+            result = run_infer_stop(
+                getattr(args, "gpucloud_job_id", None),
+                config_file=getattr(args, "gpucloud_config_file", None),
+                dry_run=False,
+                confirm_stop=True,
+                allow_discover_without_goal=True,
+            )
+        else:
+            infer_parser.print_help()
+            return 1
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result.get("ok") else 1
+
+    infer_parser.set_defaults(func=cmd_infer)
+
+    # =========================================================================
     # pairing command
     # =========================================================================
     pairing_parser = subparsers.add_parser(

@@ -41,6 +41,17 @@ def _truncate(text: str, limit: int) -> tuple[str, bool]:
     return text[:limit] + f"\n... [truncated at {limit} chars]", True
 
 
+def quote_remote_path(path: str) -> str:
+    """Quote a remote shell path while preserving leading ~/ expansion."""
+    text = str(path or "").strip()
+    if text == "~":
+        return "$HOME"
+    if text.startswith("~/"):
+        rest = text[2:]
+        return "$HOME/" + shlex.quote(rest)
+    return shlex.quote(text)
+
+
 def build_ssh_command(
     *,
     host: str,

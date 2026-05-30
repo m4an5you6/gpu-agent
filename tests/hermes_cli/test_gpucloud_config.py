@@ -40,7 +40,7 @@ def test_validate_required_minimal_ok(tmp_path):
 
 
 def test_validate_required_missing_port(tmp_path):
-    yaml_text = MINIMAL_YAML.replace("port: 22\n", "")
+    yaml_text = MINIMAL_YAML.replace("        port: 22\n", "")
     data = __import__("yaml").safe_load(yaml_text)
     errors = validate_required(data)
     assert any("port" in e for e in errors)
@@ -50,9 +50,9 @@ def test_merge_defaults_and_generated_command(tmp_path):
     path = tmp_path / "gpucloud.yaml"
     path.write_text(MINIMAL_YAML, encoding="utf-8")
     prepared = prepare_gpucloud_config(path)
-    assert prepared.merged["training"]["framework"] == "torchrun"
+    assert prepared.merged["training"]["framework"] == "megatron-lm"
     assert "my-dataset" in prepared.merged["training"]["log_dir"]
-    assert "llama-3-8b" in prepared.training_command
+    assert "pretrain_gpt.py" in prepared.training_command
     assert "torchrun" in prepared.training_command
     summary = "\n".join(prepared.summary_lines())
     assert "BEGIN" not in summary
@@ -83,7 +83,7 @@ def test_effective_dataset_override():
         MINIMAL_YAML + "\ntraining:\n  dataset_name: v2\n"
     )
     merged = merge_gpucloud_defaults(data)
-    assert generate_training_command(merged).count("--dataset v2")
+    assert generate_training_command(merged).count("--data-path v2")
 
 
 def test_inline_ssh_key_rejected():

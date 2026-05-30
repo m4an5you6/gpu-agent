@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GPUCLOUD phase 5: read-only SSH, GPU, and cluster probe tools."""
+"""GPUCLOUD SSH/GPU, training, checkpoint, and vLLM inference tools."""
 
 from __future__ import annotations
 
@@ -7,11 +7,28 @@ import json
 from typing import Any, Dict
 
 from hermes_cli.gpucloud_config import GpucloudConfigError
+from hermes_cli.gpucloud_checkpoints import (
+    run_checkpoint_cleanup,
+    run_checkpoint_latest,
+    run_checkpoint_list,
+    run_checkpoint_validate,
+    run_train_resume,
+)
 from hermes_cli.gpucloud_probe import (
-    cluster_check_json,
     run_cluster_check,
     run_gpu_info,
     run_ssh_exec,
+)
+from hermes_cli.gpucloud_inference import (
+    run_infer_health,
+    run_infer_start,
+    run_infer_status,
+    run_infer_stop,
+)
+from hermes_cli.gpucloud_train import (
+    run_train_logs,
+    run_train_start,
+    run_train_status,
 )
 from tools.registry import registry, tool_error, tool_result
 
@@ -170,6 +187,529 @@ registry.register(
     handler=gpucloud_ssh_exec_handler,
     check_fn=check_gpucloud_tools_requirements,
     emoji="[CLUSTER]",
+)
+
+def gpucloud_train_start_handler(args: Dict[str, Any], **kwargs) -> str:
+    try:
+        data = run_train_start(
+            config_file=args.get("config_file"),
+            cluster_name=args.get("cluster"),
+            node_index=int(args.get("node_index", 0) or 0),
+            dry_run=args.get("dry_run"),
+            confirm_execute=bool(args.get("confirm_execute")),
+        )
+    except Exception as exc:
+        return tool_error(str(exc), success=False)
+    if not data.get("ok"):
+        return tool_error(data.get("error", "train start failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_train_status_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_train_status(
+        job_id=args.get("job_id"),
+        limit=int(args.get("limit", 10) or 10),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "not found"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_train_logs_handler(args: Dict[str, Any], **kwargs) -> str:
+    job_id = (args.get("job_id") or "").strip()
+    if not job_id:
+        return tool_error("job_id is required", success=False)
+    data = run_train_logs(job_id, lines=int(args.get("lines", 50) or 50))
+    if not data.get("ok") and data.get("error"):
+        return tool_error(data["error"], success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_infer_start_handler(args: Dict[str, Any], **kwargs) -> str:
+    try:
+        data = run_infer_start(
+            config_file=args.get("config_file"),
+            cluster_name=args.get("cluster"),
+            node_index=int(args.get("node_index", 0) or 0),
+            dry_run=args.get("dry_run"),
+            confirm_execute=bool(args.get("confirm_execute")),
+        )
+    except Exception as exc:
+        return tool_error(str(exc), success=False)
+    if not data.get("ok"):
+        return tool_error(data.get("error", "infer start failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_infer_status_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_infer_status(
+        job_id=args.get("job_id"),
+        limit=int(args.get("limit", 10) or 10),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "not found"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_infer_health_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_infer_health(
+        job_id=args.get("job_id"),
+        config_file=args.get("config_file"),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "infer health failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_infer_stop_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_infer_stop(
+        job_id=args.get("job_id"),
+        config_file=args.get("config_file"),
+        dry_run=args.get("dry_run"),
+        confirm_stop=bool(args.get("confirm_stop")),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "infer stop failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_checkpoint_list_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_checkpoint_list(
+        config_file=args.get("config_file"),
+        cluster_name=args.get("cluster"),
+        node_index=int(args.get("node_index", 0) or 0),
+        limit=int(args.get("limit", 20) or 20),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "checkpoint list failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_checkpoint_latest_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_checkpoint_latest(
+        config_file=args.get("config_file"),
+        cluster_name=args.get("cluster"),
+        node_index=int(args.get("node_index", 0) or 0),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "checkpoint latest failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_checkpoint_validate_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_checkpoint_validate(
+        config_file=args.get("config_file"),
+        cluster_name=args.get("cluster"),
+        node_index=int(args.get("node_index", 0) or 0),
+        checkpoint_path=args.get("checkpoint_path"),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "checkpoint validation failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_train_resume_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_train_resume(
+        config_file=args.get("config_file"),
+        cluster_name=args.get("cluster"),
+        node_index=int(args.get("node_index", 0) or 0),
+        checkpoint_path=args.get("checkpoint_path"),
+        dry_run=args.get("dry_run"),
+        confirm_execute=bool(args.get("confirm_execute")),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "train resume failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_checkpoint_cleanup_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_checkpoint_cleanup(
+        config_file=args.get("config_file"),
+        cluster_name=args.get("cluster"),
+        node_index=int(args.get("node_index", 0) or 0),
+        keep=int(args.get("keep", 3) or 3),
+        dry_run=args.get("dry_run"),
+        confirm_delete=bool(args.get("confirm_delete")),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "checkpoint cleanup failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+TRAIN_START_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "cluster": {"type": "string", "description": "Cluster name from gpucloud.yaml"},
+        "node_index": {"type": "integer", "description": "Node index (default 0)"},
+        "config_file": {"type": "string"},
+        "dry_run": {
+            "type": "boolean",
+            "description": "If true, only show launch plan (default from security.dry_run_required)",
+        },
+        "confirm_execute": {
+            "type": "boolean",
+            "description": "Must be true to actually SSH-launch training after dry-run review",
+        },
+    },
+    "required": [],
+}
+
+TRAIN_STATUS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "job_id": {"type": "string", "description": "Job id; omit to list recent jobs"},
+        "limit": {"type": "integer", "description": "Max jobs when listing (default 10)"},
+    },
+    "required": [],
+}
+
+TRAIN_LOGS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "job_id": {"type": "string"},
+        "lines": {"type": "integer", "description": "Tail lines (default 50, max 500)"},
+    },
+    "required": ["job_id"],
+}
+
+INFER_START_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "cluster": {"type": "string", "description": "Cluster name from gpucloud.yaml"},
+        "node_index": {"type": "integer", "description": "Node index (default 0)"},
+        "config_file": {"type": "string"},
+        "dry_run": {
+            "type": "boolean",
+            "description": "If true, only show vLLM launch plan",
+        },
+        "confirm_execute": {
+            "type": "boolean",
+            "description": "Must be true to actually SSH-launch vLLM",
+        },
+    },
+    "required": [],
+}
+
+INFER_STATUS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "job_id": {"type": "string", "description": "Job id; omit to list recent services"},
+        "limit": {"type": "integer", "description": "Max services when listing (default 10)"},
+    },
+    "required": [],
+}
+
+INFER_HEALTH_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "job_id": {"type": "string", "description": "Inference job id; omit for latest"},
+        "config_file": {"type": "string"},
+    },
+    "required": [],
+}
+
+INFER_STOP_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "job_id": {"type": "string", "description": "Inference job id; omit for latest"},
+        "config_file": {"type": "string"},
+        "dry_run": {
+            "type": "boolean",
+            "description": "If true, only show stop command",
+        },
+        "confirm_stop": {
+            "type": "boolean",
+            "description": "Must be true to stop the remote vLLM process",
+        },
+    },
+    "required": [],
+}
+
+CHECKPOINT_NODE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "cluster": {"type": "string", "description": "Cluster name from gpucloud.yaml"},
+        "node_index": {"type": "integer", "description": "Node index (default 0)"},
+        "config_file": {"type": "string"},
+        "limit": {
+            "type": "integer",
+            "description": "Max checkpoints to list (list only, default 20)",
+        },
+    },
+    "required": [],
+}
+
+CHECKPOINT_VALIDATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "cluster": {"type": "string"},
+        "node_index": {"type": "integer"},
+        "config_file": {"type": "string"},
+        "checkpoint_path": {
+            "type": "string",
+            "description": "Checkpoint directory; omit to validate latest",
+        },
+    },
+    "required": [],
+}
+
+TRAIN_RESUME_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "cluster": {"type": "string"},
+        "node_index": {"type": "integer"},
+        "config_file": {"type": "string"},
+        "checkpoint_path": {
+            "type": "string",
+            "description": "Checkpoint directory; omit to resume from latest",
+        },
+        "dry_run": {
+            "type": "boolean",
+            "description": "If true, only show resume launch plan",
+        },
+        "confirm_execute": {
+            "type": "boolean",
+            "description": "Must be true to actually launch resume training",
+        },
+    },
+    "required": [],
+}
+
+CHECKPOINT_CLEANUP_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "cluster": {"type": "string"},
+        "node_index": {"type": "integer"},
+        "config_file": {"type": "string"},
+        "keep": {"type": "integer", "description": "Newest checkpoints to keep"},
+        "dry_run": {
+            "type": "boolean",
+            "description": "If true, only show deletion plan",
+        },
+        "confirm_delete": {
+            "type": "boolean",
+            "description": "Must be true to delete remote checkpoint directories",
+        },
+    },
+    "required": [],
+}
+
+
+registry.register(
+    name="gpucloud_train_start",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_train_start",
+            "description": (
+                "Plan or start single-node Megatron-LM training from gpucloud.yaml. "
+                "Default is dry-run showing launch_command, log_path, checkpoint_path. "
+                "Set confirm_execute=true to launch via SSH nohup. Requires /goal or config_file."
+            ),
+            "parameters": TRAIN_START_SCHEMA,
+        },
+    },
+    handler=gpucloud_train_start_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[TRAIN]",
+)
+
+registry.register(
+    name="gpucloud_train_status",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_train_status",
+            "description": "Get one training job by job_id or list recent persisted jobs.",
+            "parameters": TRAIN_STATUS_SCHEMA,
+        },
+    },
+    handler=gpucloud_train_status_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[TRAIN]",
+)
+
+registry.register(
+    name="gpucloud_train_logs",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_train_logs",
+            "description": (
+                "Tail remote training log file for a job (returns tail only, not full log)."
+            ),
+            "parameters": TRAIN_LOGS_SCHEMA,
+        },
+    },
+    handler=gpucloud_train_logs_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[TRAIN]",
+)
+
+registry.register(
+    name="gpucloud_infer_start",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_infer_start",
+            "description": (
+                "Plan or start a vLLM inference service from gpucloud.yaml. "
+                "Default is dry-run showing launch_command, service_url, and log_path. "
+                "Set confirm_execute=true to launch via SSH nohup."
+            ),
+            "parameters": INFER_START_SCHEMA,
+        },
+    },
+    handler=gpucloud_infer_start_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[INFER]",
+)
+
+registry.register(
+    name="gpucloud_infer_status",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_infer_status",
+            "description": "Get one vLLM service job or list recent persisted services.",
+            "parameters": INFER_STATUS_SCHEMA,
+        },
+    },
+    handler=gpucloud_infer_status_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[INFER]",
+)
+
+registry.register(
+    name="gpucloud_infer_health",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_infer_health",
+            "description": "Check a remote vLLM service /health endpoint over SSH.",
+            "parameters": INFER_HEALTH_SCHEMA,
+        },
+    },
+    handler=gpucloud_infer_health_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[INFER]",
+)
+
+registry.register(
+    name="gpucloud_infer_stop",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_infer_stop",
+            "description": (
+                "Dry-run or stop a persisted vLLM service by remote pid. "
+                "Set confirm_stop=true to execute the remote stop command."
+            ),
+            "parameters": INFER_STOP_SCHEMA,
+        },
+    },
+    handler=gpucloud_infer_stop_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[INFER]",
+)
+
+registry.register(
+    name="gpucloud_checkpoint_list",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_checkpoint_list",
+            "description": (
+                "List checkpoint directories under training.checkpoint_dir on a cluster node. "
+                "Requires /goal or config_file."
+            ),
+            "parameters": CHECKPOINT_NODE_SCHEMA,
+        },
+    },
+    handler=gpucloud_checkpoint_list_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[CHECKPOINT]",
+)
+
+registry.register(
+    name="gpucloud_checkpoint_latest",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_checkpoint_latest",
+            "description": "Return the newest checkpoint directory by remote mtime.",
+            "parameters": CHECKPOINT_NODE_SCHEMA,
+        },
+    },
+    handler=gpucloud_checkpoint_latest_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[CHECKPOINT]",
+)
+
+registry.register(
+    name="gpucloud_checkpoint_validate",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_checkpoint_validate",
+            "description": (
+                "Validate a checkpoint directory by checking for common model/training "
+                "state marker files. Omit checkpoint_path to validate latest."
+            ),
+            "parameters": CHECKPOINT_VALIDATE_SCHEMA,
+        },
+    },
+    handler=gpucloud_checkpoint_validate_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[CHECKPOINT]",
+)
+
+registry.register(
+    name="gpucloud_train_resume",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_train_resume",
+            "description": (
+                "Validate a checkpoint and dry-run or launch a Megatron-LM resume command. "
+                "Default is dry-run; set confirm_execute=true to run remotely."
+            ),
+            "parameters": TRAIN_RESUME_SCHEMA,
+        },
+    },
+    handler=gpucloud_train_resume_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[CHECKPOINT]",
+)
+
+registry.register(
+    name="gpucloud_checkpoint_cleanup",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_checkpoint_cleanup",
+            "description": (
+                "Plan or delete old checkpoint directories. Defaults to dry-run and "
+                "requires confirm_delete=true for remote deletion."
+            ),
+            "parameters": CHECKPOINT_CLEANUP_SCHEMA,
+        },
+    },
+    handler=gpucloud_checkpoint_cleanup_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[CHECKPOINT]",
 )
 
 registry.register(

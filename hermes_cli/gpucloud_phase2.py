@@ -98,6 +98,18 @@ GPUCLOUD_CORE_TOOLS: list[str] = [
     "gpucloud_cluster_check",
     "gpucloud_ssh_exec",
     "gpucloud_gpu_probe",
+    "gpucloud_train_start",
+    "gpucloud_train_status",
+    "gpucloud_train_logs",
+    "gpucloud_infer_start",
+    "gpucloud_infer_status",
+    "gpucloud_infer_health",
+    "gpucloud_infer_stop",
+    "gpucloud_checkpoint_list",
+    "gpucloud_checkpoint_latest",
+    "gpucloud_checkpoint_validate",
+    "gpucloud_train_resume",
+    "gpucloud_checkpoint_cleanup",
 ]
 
 # Bundled plugin keys (path-derived) not auto-loaded in phase 2.
