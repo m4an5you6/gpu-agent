@@ -95,12 +95,17 @@ def build_goal_context_block(
         "2. If cluster_check.ok is false, stop at the probe stage and report the "
         "failed node details plus next diagnostic steps. Do not start training or inference.\n"
         "3. If dry-run succeeds, present the launch command(s), log path(s), "
-        "checkpoint/model path(s), and ask for explicit user confirmation before execution.\n"
+        "checkpoint/model path(s), and plan_summary. Explain Megatron communication "
+        "scope before asking for explicit user confirmation.\n"
         "4. Do not set confirm_execute=true, confirm_stop=true, or confirm_delete=true "
         "unless the user explicitly confirms in the current conversation.\n"
         "5. After a confirmed start, use gpucloud_train_status/gpucloud_train_logs/"
         "gpucloud_checkpoint_latest for training and gpucloud_infer_status/"
         "gpucloud_infer_health for inference monitoring.\n"
+        "Megatron note: the generated default command is single-node torchrun. "
+        "Multi-node or heterogeneous GPU training must use an explicit external "
+        "launcher in training.command, such as K8s/Slurm/Ray, that owns ranks, "
+        "MASTER_ADDR/MASTER_PORT, WORLD_SIZE, and NCCL networking.\n"
         "Do not read or print SSH private key contents."
     )
 
@@ -122,6 +127,99 @@ def _diagnostic_steps(stage: str) -> List[str]:
         "Fix the reported gpucloud.yaml validation error.",
         "Re-run /goal after the required fields are present.",
     ]
+
+
+def _cluster_line(cluster: Dict[str, Any]) -> str:
+    checked = int(cluster.get("nodes_checked") or 0)
+    ok = int(cluster.get("nodes_ok") or 0)
+    return f"Cluster check: {ok}/{checked} node(s) OK"
+
+
+def megatron_communication_notes() -> Dict[str, Any]:
+    return {
+        "default_scope": "single_node_torchrun",
+        "default_communication": (
+            "torchrun starts local ranks on one host; ranks communicate through "
+            "PyTorch distributed/NCCL inside that node."
+        ),
+        "multi_node_requirement": (
+            "Multi-node Megatron-LM must be launched by an external launcher or "
+            "explicit training.command that sets nnodes, node_rank, MASTER_ADDR, "
+            "MASTER_PORT, world size, rank mapping, and NCCL network settings."
+        ),
+        "heterogeneous_gpu_warning": (
+            "Heterogeneous GPUs are not automatically balanced by GPUCLOUD; use "
+            "K8s/Slurm/Ray or a custom launcher to partition workloads and avoid "
+            "mixing incompatible memory or performance profiles."
+        ),
+    }
+
+
+def build_plan_summary(
+    *,
+    intent: str,
+    prepared: "GpucloudPreparedConfig",
+    cluster: Dict[str, Any],
+    dry_runs: Optional[Dict[str, Any]] = None,
+    stopped_stage: Optional[str] = None,
+    error: str = "",
+) -> str:
+    lines = [
+        "GPUCLOUD Goal Plan",
+        f"- Intent: {_intent_label(intent)}",
+        f"- Config: {prepared.path}",
+        f"- Dataset: {prepared.effective_dataset}",
+        f"- Model: {prepared.effective_model}",
+        f"- {_cluster_line(cluster)}",
+    ]
+    if stopped_stage:
+        lines.extend(
+            [
+                f"- Stopped at: {stopped_stage}",
+                f"- Reason: {error or 'not available'}",
+                "- No training or inference command was started.",
+            ]
+        )
+        return "\n".join(lines)
+
+    dry_runs = dry_runs or {}
+    train = dry_runs.get("train") or {}
+    if train:
+        lines.extend(
+            [
+                "- Train dry-run:",
+                f"  command: {train.get('launch_command')}",
+                f"  log: {train.get('log_path')}",
+                f"  checkpoint: {train.get('checkpoint_path')}",
+            ]
+        )
+        comm = megatron_communication_notes()
+        lines.extend(
+            [
+                "- Megatron communication:",
+                f"  default: {comm['default_communication']}",
+                f"  multi-node: {comm['multi_node_requirement']}",
+                f"  hetero GPU: {comm['heterogeneous_gpu_warning']}",
+            ]
+        )
+    infer = dry_runs.get("infer") or {}
+    if infer:
+        lines.extend(
+            [
+                "- Inference dry-run:",
+                f"  command: {infer.get('launch_command')}",
+                f"  model_path: {infer.get('model_path')}",
+                f"  service_url: {infer.get('service_url')}",
+                f"  log: {infer.get('log_path')}",
+            ]
+        )
+    lines.extend(
+        [
+            "- Execution: dry-run only; no remote training or inference has started.",
+            "- Next: ask the user for explicit confirmation before using confirm_execute=true.",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def run_goal_prepare(
@@ -154,14 +252,22 @@ def run_goal_prepare(
         allow_discover_without_goal=allow_discover_without_goal,
     )
     if not cluster.get("ok"):
+        error = "cluster check failed; stopped before training/inference dry-run"
         return {
             "ok": False,
             "stage": "cluster_check",
             "intent": intent,
             "config_path": str(prepared.path),
             "cluster_check": cluster,
-            "error": "cluster check failed; stopped before training/inference dry-run",
+            "error": error,
             "next_steps": _diagnostic_steps("cluster_check"),
+            "plan_summary": build_plan_summary(
+                intent=intent,
+                prepared=prepared,
+                cluster=cluster,
+                stopped_stage="cluster_check",
+                error=error,
+            ),
         }
 
     dry_runs: Dict[str, Any] = {}
@@ -186,6 +292,7 @@ def run_goal_prepare(
 
     failed = {name: data for name, data in dry_runs.items() if not data.get("ok")}
     if failed:
+        error = "one or more dry-run plans failed"
         return {
             "ok": False,
             "stage": "dry_run",
@@ -193,8 +300,17 @@ def run_goal_prepare(
             "config_path": str(prepared.path),
             "cluster_check": cluster,
             "dry_runs": dry_runs,
-            "error": "one or more dry-run plans failed",
+            "error": error,
             "next_steps": _diagnostic_steps("dry_run"),
+            "communication": megatron_communication_notes(),
+            "plan_summary": build_plan_summary(
+                intent=intent,
+                prepared=prepared,
+                cluster=cluster,
+                dry_runs=dry_runs,
+                stopped_stage="dry_run",
+                error=error,
+            ),
         }
 
     return {
@@ -206,6 +322,13 @@ def run_goal_prepare(
         "model": prepared.effective_model,
         "cluster_check": cluster,
         "dry_runs": dry_runs,
+        "communication": megatron_communication_notes(),
+        "plan_summary": build_plan_summary(
+            intent=intent,
+            prepared=prepared,
+            cluster=cluster,
+            dry_runs=dry_runs,
+        ),
         "message": (
             "Goal preparation reached dry-run only. Review commands and ask the "
             "user for explicit confirmation before starting remote work."

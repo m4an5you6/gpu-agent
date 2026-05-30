@@ -8,6 +8,7 @@ from hermes_cli.gpucloud_config import prepare_gpucloud_config
 from hermes_cli.gpucloud_goal import (
     build_goal_context_block,
     infer_goal_intent,
+    megatron_communication_notes,
     run_goal_prepare,
 )
 
@@ -43,6 +44,7 @@ def test_goal_context_names_mandatory_prepare_tool(tmp_path):
     assert "gpucloud_goal_prepare first" in block
     assert "gpucloud_cluster_check" not in block
     assert "confirm_execute=true" in block
+    assert "MASTER_ADDR" in block
     assert "vLLM inference service" in block
     assert "Do not read or print SSH private key contents" in block
 
@@ -77,6 +79,7 @@ def test_goal_prepare_stops_on_cluster_failure(tmp_path, monkeypatch):
     assert out["stage"] == "cluster_check"
     assert called["train"] is False
     assert "stopped before" in out["error"]
+    assert "No training or inference command was started" in out["plan_summary"]
 
 
 def test_goal_prepare_reaches_train_and_infer_dry_run(tmp_path, monkeypatch):
@@ -101,6 +104,20 @@ def test_goal_prepare_reaches_train_and_infer_dry_run(tmp_path, monkeypatch):
     assert out["dry_runs"]["infer"]["dry_run"] is True
     assert "torchrun" in out["dry_runs"]["train"]["launch_command"]
     assert "vllm serve" in out["dry_runs"]["infer"]["launch_command"]
+    assert "GPUCLOUD Goal Plan" in out["plan_summary"]
+    assert "Train dry-run" in out["plan_summary"]
+    assert "Inference dry-run" in out["plan_summary"]
+    assert "Megatron communication" in out["plan_summary"]
+    assert "MASTER_ADDR" in out["communication"]["multi_node_requirement"]
+    assert "confirm_execute=true" in out["plan_summary"]
+
+
+def test_megatron_communication_notes_define_boundary():
+    notes = megatron_communication_notes()
+    assert notes["default_scope"] == "single_node_torchrun"
+    assert "NCCL" in notes["default_communication"]
+    assert "external launcher" in notes["multi_node_requirement"]
+    assert "Heterogeneous GPUs" in notes["heterogeneous_gpu_warning"]
 
 
 def test_generic_goal_does_not_require_gpucloud_yaml(tmp_path, monkeypatch):
