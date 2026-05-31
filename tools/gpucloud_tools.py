@@ -40,6 +40,10 @@ from hermes_cli.gpucloud_worker import (
     run_worker_stop,
     run_worker_wait,
 )
+from hermes_cli.gpucloud_worker_goal import (
+    run_worker_goal_run,
+    run_worker_goal_status,
+)
 from tools.registry import registry, tool_error, tool_result
 
 
@@ -381,6 +385,27 @@ def gpucloud_worker_stop_handler(args: Dict[str, Any], **kwargs) -> str:
     return tool_result(success=True, data=data)
 
 
+def gpucloud_worker_goal_run_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_worker_goal_run(
+        task_file=args.get("task_file"),
+        goal=args.get("goal") or "",
+        mode=args.get("mode"),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("last_error") or data.get("error", "worker goal failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
+def gpucloud_worker_goal_status_handler(args: Dict[str, Any], **kwargs) -> str:
+    data = run_worker_goal_status(
+        job_id=args.get("job_id"),
+        task_file=args.get("task_file"),
+    )
+    if not data.get("ok"):
+        return tool_error(data.get("error", "worker goal status failed"), success=False, detail=data)
+    return tool_result(success=True, data=data)
+
+
 def gpucloud_checkpoint_list_handler(args: Dict[str, Any], **kwargs) -> str:
     data = run_checkpoint_list(
         config_file=args.get("config_file"),
@@ -699,6 +724,38 @@ WORKER_STOP_SCHEMA = {
         },
     },
     "required": ["job_id"],
+}
+
+WORKER_GOAL_RUN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "task_file": {
+            "type": "string",
+            "description": "Optional path to gpucloud-worker-task.yaml; omitted uses worker discovery order",
+        },
+        "goal": {
+            "type": "string",
+            "description": "Original /goal text for intent inference",
+        },
+        "mode": {
+            "type": "string",
+            "enum": ["train", "infer", "train_and_infer"],
+            "description": "Optional explicit worker goal mode",
+        },
+    },
+    "required": [],
+}
+
+WORKER_GOAL_STATUS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "job_id": {"type": "string", "description": "Worker goal job id"},
+        "task_file": {
+            "type": "string",
+            "description": "Optional task file used to infer job_id when job_id is omitted",
+        },
+    },
+    "required": [],
 }
 
 
@@ -1063,6 +1120,42 @@ registry.register(
     handler=gpucloud_worker_stop_handler,
     check_fn=check_gpucloud_tools_requirements,
     emoji="[TRAIN]",
+)
+
+registry.register(
+    name="gpucloud_worker_goal_run",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_worker_goal_run",
+            "description": (
+                "Advance the local child-agent /goal workflow from gpucloud-worker-task.yaml: "
+                "preflight, local Megatron training, checkpoint conversion, local vLLM start, "
+                "and health polling. Does not use SSH or schedule other machines."
+            ),
+            "parameters": WORKER_GOAL_RUN_SCHEMA,
+        },
+    },
+    handler=gpucloud_worker_goal_run_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[GOAL]",
+)
+
+registry.register(
+    name="gpucloud_worker_goal_status",
+    toolset="gpucloud",
+    schema={
+        "type": "function",
+        "function": {
+            "name": "gpucloud_worker_goal_status",
+            "description": "Return persisted status for the local child-agent GPUCLOUD /goal workflow.",
+            "parameters": WORKER_GOAL_STATUS_SCHEMA,
+        },
+    },
+    handler=gpucloud_worker_goal_status_handler,
+    check_fn=check_gpucloud_tools_requirements,
+    emoji="[GOAL]",
 )
 
 registry.register(

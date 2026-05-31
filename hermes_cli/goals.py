@@ -600,7 +600,24 @@ class GoalManager:
         clear_goal_gpucloud_config()
 
     def _load_gpucloud_context_for_goal(self, goal: str = "") -> None:
-        """Load gpucloud.yaml — only when starting a /goal (phase 4)."""
+        """Load worker task first, otherwise gpucloud.yaml, only for /goal."""
+        from hermes_cli.gpucloud_context import clear_goal_gpucloud_config
+        from hermes_cli.gpucloud_worker_goal import (
+            build_worker_goal_context_block,
+            find_worker_goal_task,
+            load_worker_goal_task,
+        )
+
+        worker_task = find_worker_goal_task()
+        if worker_task is not None:
+            clear_goal_gpucloud_config()
+            try:
+                task = load_worker_goal_task(worker_task)
+            except Exception as exc:
+                raise ValueError(str(exc)) from exc
+            self._gpucloud_context = build_worker_goal_context_block(task, goal=goal)
+            return
+
         from hermes_cli.gpucloud_config import (
             GpucloudConfigError,
             load_gpucloud_for_goal,
@@ -613,10 +630,7 @@ class GoalManager:
                 detail = "; ".join(exc.errors)
                 raise ValueError(f"gpucloud.yaml: {detail}") from exc
             raise ValueError(str(exc)) from exc
-        from hermes_cli.gpucloud_context import (
-            clear_goal_gpucloud_config,
-            set_goal_gpucloud_config,
-        )
+        from hermes_cli.gpucloud_context import set_goal_gpucloud_config
 
         set_goal_gpucloud_config(prepared)
         self._gpucloud_context = prepared.context_block_for_goal(goal=goal)

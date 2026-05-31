@@ -118,6 +118,8 @@ GPUCLOUD_CORE_TOOLS: list[str] = [
     "gpucloud_worker_status",
     "gpucloud_worker_logs",
     "gpucloud_worker_stop",
+    "gpucloud_worker_goal_run",
+    "gpucloud_worker_goal_status",
 ]
 
 # Bundled plugin keys (path-derived) not auto-loaded in phase 2.

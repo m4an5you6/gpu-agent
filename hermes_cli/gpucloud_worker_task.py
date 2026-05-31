@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -53,6 +54,30 @@ def resolve_worker_task_path(explicit: Union[str, Path]) -> Path:
     if not path.is_file():
         raise WorkerTaskError(f"worker task file not found: {path}")
     return path.resolve()
+
+
+def discover_worker_task_paths(*, start_dir: Optional[Path] = None) -> List[Path]:
+    env = os.environ.get("GPUCLOUD_WORKER_TASK", "").strip()
+    if env:
+        return [Path(env).expanduser()]
+    cwd = (start_dir or Path.cwd()).resolve()
+    return [
+        cwd / "gpucloud-worker-task.yaml",
+        Path.home() / ".gpucloud" / "worker-task.yaml",
+    ]
+
+
+def resolve_worker_task_discovery(
+    explicit: Optional[Union[str, Path]] = None,
+    *,
+    start_dir: Optional[Path] = None,
+) -> Optional[Path]:
+    if explicit:
+        return resolve_worker_task_path(explicit)
+    for candidate in discover_worker_task_paths(start_dir=start_dir):
+        if candidate.is_file():
+            return candidate.resolve()
+    return None
 
 
 def load_raw_worker_task(path: Path) -> Dict[str, Any]:
@@ -112,6 +137,33 @@ def merge_worker_task_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
     preflight.setdefault("require_gpu_count", distributed.get("nproc_per_node", 1))
     preflight.setdefault("min_vram_gb", 0)
     preflight.setdefault("heterogeneous_policy", "warn")
+
+    goal = out.setdefault("goal", {})
+    if not isinstance(goal, dict):
+        goal = {}
+        out["goal"] = goal
+    goal.setdefault("mode", "train_and_infer")
+    goal.setdefault("auto_execute", True)
+
+    conversion = out.setdefault("conversion", {})
+    if not isinstance(conversion, dict):
+        conversion = {}
+        out["conversion"] = conversion
+    conversion.setdefault("output_dir", f"{runtime['workdir']}/models/{job_id}")
+    conversion.setdefault("command_template", "")
+    conversion.setdefault("auto_discover", True)
+
+    inference = out.setdefault("inference", {})
+    if not isinstance(inference, dict):
+        inference = {}
+        out["inference"] = inference
+    inference.setdefault("engine", "vllm")
+    inference.setdefault("model_path", conversion.get("output_dir"))
+    inference.setdefault("host", "0.0.0.0")
+    inference.setdefault("port", 8000)
+    inference.setdefault("tensor_parallel", 1)
+    inference.setdefault("extra_args", [])
+    inference.setdefault("command_template", "")
 
     return out
 
@@ -221,6 +273,18 @@ class WorkerTask:
         return _as_mapping(self.merged, "preflight")
 
     @property
+    def goal(self) -> Dict[str, Any]:
+        return _as_mapping(self.merged, "goal")
+
+    @property
+    def conversion(self) -> Dict[str, Any]:
+        return _as_mapping(self.merged, "conversion")
+
+    @property
+    def inference(self) -> Dict[str, Any]:
+        return _as_mapping(self.merged, "inference")
+
+    @property
     def node_rank(self) -> int:
         return int(self.distributed["node_rank"])
 
@@ -257,6 +321,10 @@ class WorkerTask:
             "checkpoint_dir": self.training.get("checkpoint_dir"),
             "log_dir": self.training.get("log_dir"),
             "heterogeneous_policy": self.preflight.get("heterogeneous_policy"),
+            "goal_mode": self.goal.get("mode"),
+            "auto_execute": self.goal.get("auto_execute"),
+            "conversion_output_dir": self.conversion.get("output_dir"),
+            "inference_model_path": self.inference.get("model_path"),
         }
 
 
@@ -275,7 +343,9 @@ __all__ = [
     "WorkerTaskError",
     "load_raw_worker_task",
     "load_worker_task",
+    "discover_worker_task_paths",
     "merge_worker_task_defaults",
+    "resolve_worker_task_discovery",
     "resolve_worker_task_path",
     "validate_worker_task",
 ]

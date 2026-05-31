@@ -8,7 +8,8 @@ GPUCLOUD Agent 是一个面向 GPU 集群和机器学习任务的 CLI 优先 Age
 
 - 用户可见产品名改为 GPUCLOUD。
 - `gpucloud.yaml` 作为 ML 集群配置文件。
-- 只有 `/goal` 会在 Agent 流程中隐式加载 `gpucloud.yaml`。
+- 只有 `/goal` 会在 Agent 流程中隐式加载 GPUCLOUD ML 配置；优先读取
+  worker task 文件，`gpucloud.yaml` 作为 SSH fallback。
 - 显式 CLI 命令可以加载 `gpucloud.yaml` 做校验、探测、训练、checkpoint 和推理管理。
 - 训练框架固定为 Megatron-LM。
 - 推理引擎固定为 vLLM。
@@ -99,6 +100,12 @@ gpucloud worker stop --job-id gpt-pretrain-001 --yes
 
 `worker start` 和 `worker stop` 必须显式传 `--yes`。`worker dry-run` 永远不会启动训练进程。
 
+在子 agent 模式下，`/goal` 会优先读取本地 worker task 文件，而不是
+`gpucloud.yaml`。发现顺序固定为 `GPUCLOUD_WORKER_TASK`、当前目录
+`gpucloud-worker-task.yaml`、`~/.gpucloud/worker-task.yaml`。一旦发现 task
+文件，`/goal` 会调用 `gpucloud_worker_goal_run`，不会做 SSH cluster check；
+子 agent 只管理本机 Megatron、转换和 vLLM 进程。
+
 ## `gpucloud.yaml`
 
 最小集群配置：
@@ -158,6 +165,7 @@ training:
   data_path: /data/datasets/tokens
   checkpoint_dir: /data/checkpoints/gpt-pretrain-001
   log_dir: /data/logs/gpucloud
+  command_template: ""
   extra_args:
     - --tensor-model-parallel-size=1
     - --pipeline-model-parallel-size=1
@@ -169,6 +177,23 @@ preflight:
   require_gpu_count: 1
   min_vram_gb: 16
   heterogeneous_policy: warn
+
+goal:
+  mode: train_and_infer
+  auto_execute: true
+
+conversion:
+  output_dir: /data/models/gpt2-finetuned-hf
+  command_template: ""
+  auto_discover: true
+
+inference:
+  engine: vllm
+  model_path: /data/models/gpt2-finetuned-hf
+  host: 0.0.0.0
+  port: 8000
+  tensor_parallel: 1
+  extra_args: []
 ```
 
 异构 GPU 策略：
@@ -206,8 +231,10 @@ GPUCLOUD toolset 包含：
 - `gpucloud_worker_status`
 - `gpucloud_worker_logs`
 - `gpucloud_worker_stop`
+- `gpucloud_worker_goal_run`
+- `gpucloud_worker_goal_status`
 
-worker 工具必须显式提供 `task_file` 或 `job_id`，不会自动扫描任意配置文件，也不会调度其他机器。
+worker goal 工具在缺省 `task_file` 时只按固定顺序发现 task 文件，不调度其他机器，也不使用 SSH。
 
 ## 开发
 

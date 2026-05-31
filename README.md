@@ -13,7 +13,8 @@ part of the default GPUCLOUD workflow.
 
 - User-visible product identity is GPUCLOUD.
 - `gpucloud.yaml` is the ML cluster configuration file.
-- `/goal` is the only Agent path that implicitly loads `gpucloud.yaml`.
+- `/goal` is the only Agent path that implicitly loads GPUCLOUD ML config; a
+  worker task file is preferred, with `gpucloud.yaml` as the SSH fallback.
 - Explicit CLI commands can load `gpucloud.yaml` for validation, probes,
   training, checkpoints, and inference.
 - Training framework is Megatron-LM.
@@ -111,6 +112,13 @@ gpucloud worker stop --job-id gpt-pretrain-001 --yes
 `worker start` and `worker stop` require explicit confirmation with `--yes`.
 `worker dry-run` never starts a process.
 
+In child-agent mode, `/goal` prefers a local worker task file over
+`gpucloud.yaml`. Discovery order is `GPUCLOUD_WORKER_TASK`, then
+`./gpucloud-worker-task.yaml`, then `~/.gpucloud/worker-task.yaml`. When a
+task file exists, `/goal` uses `gpucloud_worker_goal_run` and never performs
+SSH cluster checks; the child agent only manages local Megatron, conversion,
+and vLLM processes.
+
 ## `gpucloud.yaml`
 
 Minimal cluster config:
@@ -174,6 +182,7 @@ training:
   data_path: /data/datasets/tokens
   checkpoint_dir: /data/checkpoints/gpt-pretrain-001
   log_dir: /data/logs/gpucloud
+  command_template: ""
   extra_args:
     - --tensor-model-parallel-size=1
     - --pipeline-model-parallel-size=1
@@ -185,6 +194,23 @@ preflight:
   require_gpu_count: 1
   min_vram_gb: 16
   heterogeneous_policy: warn
+
+goal:
+  mode: train_and_infer
+  auto_execute: true
+
+conversion:
+  output_dir: /data/models/gpt2-finetuned-hf
+  command_template: ""
+  auto_discover: true
+
+inference:
+  engine: vllm
+  model_path: /data/models/gpt2-finetuned-hf
+  host: 0.0.0.0
+  port: 8000
+  tensor_parallel: 1
+  extra_args: []
 ```
 
 Heterogeneous GPU policy:
@@ -225,9 +251,11 @@ The GPUCLOUD toolset includes:
 - `gpucloud_worker_status`
 - `gpucloud_worker_logs`
 - `gpucloud_worker_stop`
+- `gpucloud_worker_goal_run`
+- `gpucloud_worker_goal_status`
 
-Worker tools always require an explicit `task_file` or `job_id`. They do not
-scan arbitrary files or dispatch commands to other machines.
+Worker goal tools use the fixed task discovery order above when `task_file` is
+omitted. They do not dispatch commands to other machines or use SSH.
 
 ## Development
 

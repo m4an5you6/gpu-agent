@@ -195,6 +195,8 @@ TOOLSETS = {
             "gpucloud_worker_status",
             "gpucloud_worker_logs",
             "gpucloud_worker_stop",
+            "gpucloud_worker_goal_run",
+            "gpucloud_worker_goal_status",
         ],
         "includes": [],
     },

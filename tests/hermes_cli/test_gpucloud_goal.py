@@ -130,3 +130,49 @@ def test_generic_goal_does_not_require_gpucloud_yaml(tmp_path, monkeypatch):
 
     assert state.gpucloud_goal is False
     assert mgr.initial_user_message() == "write a short project note"
+
+
+def test_gpucloud_goal_prefers_worker_task_without_gpucloud_yaml(tmp_path, monkeypatch):
+    from hermes_cli.goals import GoalManager
+
+    task = tmp_path / "gpucloud-worker-task.yaml"
+    workdir = tmp_path / "work"
+    megatron = tmp_path / "Megatron-LM"
+    data = tmp_path / "tokens"
+    ckpt = tmp_path / "checkpoints"
+    logs = tmp_path / "logs"
+    megatron.mkdir()
+    data.mkdir()
+    (megatron / "pretrain_gpt.py").write_text("print('train')\n", encoding="utf-8")
+    task.write_text(
+        textwrap.dedent(
+            f"""
+            job_id: worker-goal-test
+            distributed:
+              nnodes: 1
+              nproc_per_node: 1
+              node_rank: 0
+              master_addr: 127.0.0.1
+              master_port: 29611
+            runtime:
+              workdir: {workdir}
+              megatron_lm_dir: {megatron}
+            training:
+              data_path: {data}
+              checkpoint_dir: {ckpt}
+              log_dir: {logs}
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    mgr = GoalManager(session_id="worker-goal-no-yaml")
+    state = mgr.set("训练并推理 gpt2")
+    message = mgr.initial_user_message()
+
+    assert state.gpucloud_goal is True
+    assert message is not None
+    assert "gpucloud_worker_goal_run first" in message
+    assert "Do not run SSH cluster checks" in message
+    assert "gpucloud_goal_prepare first" not in message

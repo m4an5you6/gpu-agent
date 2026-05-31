@@ -26,6 +26,9 @@ training:
   data_path: /data/datasets/tokens
   checkpoint_dir: /data/checkpoints/gpt-pretrain-001
   log_dir: /data/logs/gpucloud
+  # GPT-2 fine-tune production runs should provide either command_template or
+  # complete extra_args for tokenizer/vocab/merge/base checkpoint/model shape.
+  command_template: ""
   extra_args:
     - --tensor-model-parallel-size=1
     - --pipeline-model-parallel-size=1
@@ -38,3 +41,21 @@ preflight:
   require_gpu_count: 1
   min_vram_gb: 16
   heterogeneous_policy: warn
+
+goal:
+  mode: train_and_infer
+  auto_execute: true
+
+conversion:
+  output_dir: /data/models/gpt2-finetuned-hf
+  command_template: ""
+  auto_discover: true
+
+inference:
+  engine: vllm
+  model_path: /data/models/gpt2-finetuned-hf
+  host: 0.0.0.0
+  port: 8000
+  tensor_parallel: 1
+  extra_args: []
+  command_template: ""

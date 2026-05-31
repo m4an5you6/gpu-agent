@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import signal
 import socket
 import subprocess
@@ -438,6 +439,7 @@ def run_worker_start(
 
     plan = build_worker_plan(task)
     state = _initial_state(task, plan, status="pending")
+    state["exit_code_path"] = str(_expand_path(plan["log_path"]).with_suffix(".exitcode"))
     save_worker_state(state)
 
     if not skip_preflight:
@@ -448,35 +450,21 @@ def run_worker_start(
             save_worker_state(state)
             return {"ok": False, "error": "preflight failed", "preflight": preflight, "job": state}
 
-    workdir = _expand_path(plan["workdir"])
-    log_path = _expand_path(plan["log_path"])
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    workdir.mkdir(parents=True, exist_ok=True)
-
     env = os.environ.copy()
     env.update(worker_env(task))
-    log_fh = None
     try:
-        log_fh = log_path.open("ab")
-        proc = subprocess.Popen(
-            plan["launch_command"],
-            shell=True,
-            cwd=str(workdir),
+        proc = launch_wrapped_command(
+            command=plan["launch_command"],
+            workdir=plan["workdir"],
+            log_path=plan["log_path"],
+            exit_code_path=state["exit_code_path"],
             env=env,
-            stdout=log_fh,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
         )
     except OSError as exc:
-        if log_fh is not None:
-            log_fh.close()
         state["status"] = "failed"
         state["last_error"] = str(exc)
         save_worker_state(state)
         return {"ok": False, "error": str(exc), "job": state}
-    finally:
-        if log_fh is not None and not log_fh.closed:
-            log_fh.close()
 
     state["status"] = "running"
     state["pid"] = proc.pid
@@ -488,7 +476,7 @@ def run_worker_start(
         "dry_run": False,
         "job": state,
         "pid": proc.pid,
-        "log_path": str(log_path),
+        "log_path": str(_expand_path(plan["log_path"])),
         "checkpoint_dir": plan["checkpoint_dir"],
         "message": f"Worker job {task.job_id} rank {task.node_rank} started (pid={proc.pid})",
     }
@@ -503,6 +491,17 @@ def run_worker_status(*, job_id: str) -> Dict[str, Any]:
 
     status = str(state.get("status") or "pending")
     pid = state.get("pid")
+    exit_code = read_exit_code(state.get("exit_code_path"))
+    if exit_code is not None:
+        state["exit_code"] = exit_code
+        if status == "running":
+            state["status"] = "completed" if exit_code == 0 else "failed"
+            if exit_code != 0:
+                state["last_error"] = f"worker process exited {exit_code}"
+            state["heartbeat_at"] = _now()
+            save_worker_state(state)
+        return {"ok": True, "job": state, "running": False}
+
     running = _pid_running(pid)
     if status == "running" and not running:
         state["status"] = "completed"
@@ -521,6 +520,52 @@ def _tail_text(path: Path, lines: int) -> str:
         return ""
     split = content.splitlines()
     return "\n".join(split[-max(1, min(int(lines), 500)):])
+
+
+def read_exit_code(path: Union[str, Path, None]) -> Optional[int]:
+    if not path:
+        return None
+    try:
+        text = _expand_path(path).read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        return None
+
+
+def launch_wrapped_command(
+    *,
+    command: str,
+    workdir: Union[str, Path],
+    log_path: Union[str, Path],
+    exit_code_path: Union[str, Path],
+    env: Optional[Dict[str, str]] = None,
+) -> subprocess.Popen:
+    workdir_path = _expand_path(workdir)
+    log_file = _expand_path(log_path)
+    exit_file = _expand_path(exit_code_path)
+    workdir_path.mkdir(parents=True, exist_ok=True)
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    exit_file.parent.mkdir(parents=True, exist_ok=True)
+    exit_file.unlink(missing_ok=True)
+
+    wrapper = (
+        f"cd {shlex.quote(str(workdir_path))} && "
+        f"( {command} ) >> {shlex.quote(str(log_file))} 2>&1; "
+        "code=$?; "
+        f"printf '%s\\n' \"$code\" > {shlex.quote(str(exit_file))}; "
+        "exit \"$code\""
+    )
+    return subprocess.Popen(
+        ["bash", "-lc", wrapper],
+        cwd=str(workdir_path),
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
 
 
 def run_worker_logs(*, job_id: str, lines: int = 50) -> Dict[str, Any]:
@@ -557,7 +602,9 @@ def run_worker_stop(*, job_id: str, confirm_stop: bool = False) -> Dict[str, Any
 
 __all__ = [
     "WORKER_STATUSES",
+    "launch_wrapped_command",
     "load_worker_state",
+    "read_exit_code",
     "run_worker_dry_run",
     "run_worker_logs",
     "run_worker_preflight",
