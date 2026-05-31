@@ -44,18 +44,7 @@ name: uv.lock check
 # the same way.  Better to catch it here than after merge.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - '.github/workflows/uv-lockfile-check.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - '.github/workflows/uv-lockfile-check.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read

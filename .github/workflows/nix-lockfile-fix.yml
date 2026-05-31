@@ -1,21 +1,12 @@
 name: Nix Lockfile Fix
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'ui-tui/package-lock.json'
-      - 'ui-tui/package.json'
-      - 'web/package-lock.json'
-      - 'web/package.json'
   workflow_dispatch:
     inputs:
       pr_number:
         description: 'PR number to fix (leave empty to run on the selected branch)'
         required: false
         type: string
-  issue_comment:
-    types: [edited]
 
 permissions:
   contents: write
