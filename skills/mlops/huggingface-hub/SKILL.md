@@ -70,6 +70,39 @@ The `hf` command is the modern command-line interface for interacting with the H
 
 ---
 
+## Network-Restricted Environments (Chinese Cloud, Firewalled Hosts)
+
+If `huggingface.co` is unreachable (common on Chinese cloud instances):
+
+### Mirror Endpoint
+Set `HF_ENDPOINT` **before** importing any HF library:
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+# Or inline:
+HF_ENDPOINT=https://hf-mirror.com hf download gpt2
+HF_ENDPOINT=https://hf-mirror.com python -c "from datasets import load_dataset; ..."
+```
+
+### Direct URL Downloads (bypass hf CLI)
+For individual files (tokenizer, config):
+```bash
+curl -L -o vocab.json "https://hf-mirror.com/openai-community/gpt2/resolve/main/vocab.json"
+curl -L -o merges.txt "https://hf-mirror.com/openai-community/gpt2/resolve/main/merges.txt"
+```
+
+### Datasets Library with Mirror
+```python
+import os
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"  # MUST be before import
+from datasets import load_dataset
+ds = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1")
+```
+
+### PyPI Mirror (pip installs)
+Chinese instances often have `/etc/pip.conf` pre-configured to `pypi.tuna.tsinghua.edu.cn`. Verify with `cat /etc/pip.conf`.
+
+---
+
 ## Advanced Usage & Tips
 
 ### Global Flags
