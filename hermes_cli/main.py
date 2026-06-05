@@ -12877,7 +12877,7 @@ Examples:
     # =========================================================================
     worker_parser = subparsers.add_parser(
         "worker",
-        help="Distributed Megatron worker: wait, preflight, dry-run, start, status",
+        help="Distributed Megatron worker: connect, wait, preflight, dry-run, start, status",
         description=(
             "Manage this machine's local GPUCLOUD worker rank from a "
             "gpucloud-worker-task.yaml file. The coordinator distributes task "
@@ -12936,6 +12936,18 @@ Examples:
         help="Confirm local process stop",
     )
 
+    worker_connect = worker_sub.add_parser("connect", help="Register with a main agent over WSS")
+    worker_connect.add_argument("--server-url", required=True, help="Main agent WSS URL, e.g. wss://host/api/v0/workers/ws")
+    worker_connect.add_argument("--node-id", required=True, help="Stable node id assigned by the main agent")
+    worker_connect.add_argument("--cert", dest="cert_path", help="Client certificate path for mTLS")
+    worker_connect.add_argument("--key", dest="key_path", help="Client key path for mTLS")
+    worker_connect.add_argument("--ca", dest="ca_path", help="CA bundle path for server verification")
+    worker_connect.add_argument("--cert-fingerprint", help="Optional certificate fingerprint echoed in registration payload")
+    worker_connect.add_argument("--task-dir", help="Directory for WSS-delivered gpucloud-worker-task YAML files")
+    worker_connect.add_argument("--poll-interval-sec", type=float, default=5.0)
+    worker_connect.add_argument("--heartbeat-sec", type=float, default=10.0)
+    worker_connect.add_argument("--reconnect-sec", type=float, default=5.0)
+
     def cmd_worker(args):
         import json
 
@@ -12986,6 +12998,21 @@ Examples:
             result = run_worker_stop(
                 job_id=getattr(args, "job_id"),
                 confirm_stop=True,
+            )
+        elif sub == "connect":
+            from hermes_cli.gpucloud_worker_connect import run_worker_connect
+
+            return run_worker_connect(
+                server_url=getattr(args, "server_url"),
+                node_id=getattr(args, "node_id"),
+                cert_path=getattr(args, "cert_path", None),
+                key_path=getattr(args, "key_path", None),
+                ca_path=getattr(args, "ca_path", None),
+                cert_fingerprint=getattr(args, "cert_fingerprint", None),
+                task_dir=getattr(args, "task_dir", None),
+                poll_interval_sec=getattr(args, "poll_interval_sec", 5.0),
+                heartbeat_sec=getattr(args, "heartbeat_sec", 10.0),
+                reconnect_sec=getattr(args, "reconnect_sec", 5.0),
             )
         else:
             worker_parser.print_help()
