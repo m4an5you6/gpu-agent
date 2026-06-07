@@ -203,3 +203,63 @@ def test_worker_stop_requires_confirmation(tmp_path, monkeypatch):
 
     stopped = run_worker_stop(job_id="worker-test-1", confirm_stop=False)
     assert not stopped["ok"]
+
+
+def test_swift_megatron_multinode_requires_shared_modelscope_cache(tmp_path, monkeypatch):
+    workdir = tmp_path / "work"
+    logs = tmp_path / "logs"
+    ckpt = tmp_path / "checkpoints"
+    path = tmp_path / "swift-task.yaml"
+    path.write_text(
+        textwrap.dedent(
+            f"""
+            job_id: swift-cache-check
+            framework: megatron-lm
+            role: worker
+            distributed:
+              nnodes: 2
+              nproc_per_node: 1
+              node_rank: 0
+              master_addr: 127.0.0.1
+              master_port: 29631
+            runtime:
+              workdir: {workdir}
+              megatron_lm_dir: {tmp_path / "Megatron-LM"}
+            training:
+              runner: swift_megatron
+              training_type: sft
+              checkpoint_dir: {ckpt}
+              log_dir: {logs}
+              swift:
+                model: Qwen2.5-Coder-7B
+                dataset: swift/sharegpt:common-zh
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "hermes_cli.gpucloud_worker.probe_local_gpu",
+        lambda: {
+            "target": "local",
+            "available": True,
+            "gpus": [{"index": 0, "name": "A10", "memory_total_mib": "24576"}],
+            "gpu_count": 1,
+        },
+    )
+    monkeypatch.setattr(
+        "hermes_cli.gpucloud_worker._torch_probe",
+        lambda python: {
+            "ok": True,
+            "cuda_available": True,
+            "distributed_available": True,
+            "nccl_available": True,
+        },
+    )
+    monkeypatch.setattr("hermes_cli.gpucloud_worker.shutil.which", lambda name: "/usr/bin/megatron")
+
+    out = run_worker_preflight(task_file=path, check_network=False)
+
+    assert not out["ok"]
+    failed = {c["name"] for c in out["checks"] if not c["ok"]}
+    assert "modelscope_cache_shared" in failed

@@ -119,11 +119,13 @@ def _new_state(task: WorkerTask, *, goal: str = "", mode: Optional[str] = None) 
         "task_file": str(task.path),
         "backend": "worker_local",
         "intent": intent,
-        "stage": "preflight",
+        "stage": "environment_preparing",
         "status": "active",
-        "next_action": "run local preflight",
+        "next_action": "prepare local environment",
         "created_at": now,
         "updated_at": now,
+        "environment": {},
+        "data": {},
         "train": {},
         "conversion": {},
         "inference": {},
@@ -141,6 +143,8 @@ def _base_response(state: Dict[str, Any]) -> Dict[str, Any]:
         "stage": state.get("stage"),
         "status": state.get("status"),
         "next_action": state.get("next_action"),
+        "environment": state.get("environment") or {},
+        "data": state.get("data") or {},
         "train": state.get("train") or {},
         "conversion": state.get("conversion") or {},
         "inference": state.get("inference") or {},
@@ -302,6 +306,52 @@ def _tail_for_state(state: Dict[str, Any], section: str, *, lines: int = 50) -> 
     return _tail_text(_expand_path(data.get("log_path") or ""), lines)
 
 
+def _prepare_environment(task: WorkerTask) -> Dict[str, Any]:
+    paths = [
+        _expand_path(task.runtime["workdir"]),
+        _expand_path(task.training["checkpoint_dir"]),
+        _expand_path(task.training["log_dir"]),
+    ]
+    created: list[str] = []
+    for path in paths:
+        path.mkdir(parents=True, exist_ok=True)
+        created.append(str(path))
+    warnings = []
+    if task.environment.get("auto_install"):
+        warnings.append(
+            "environment.auto_install requested; GPUCLOUD prepared paths/env and expects the image or provisioner to provide packages"
+        )
+    return {
+        "ok": True,
+        "created_paths": created,
+        "env_keys": sorted(worker_env(task).keys()),
+        "warnings": warnings,
+    }
+
+
+def _prepare_data(task: WorkerTask) -> Dict[str, Any]:
+    data_path = _expand_path(task.training.get("data_path") or _expand_path(task.runtime["workdir"]) / "data")
+    auto_data = bool(
+        task.training_runner == "swift_megatron"
+        or task.training.get("dataset_config")
+        or (isinstance(task.training.get("megatron"), dict) and task.training["megatron"].get("auto_data"))
+    )
+    if auto_data:
+        data_path.mkdir(parents=True, exist_ok=True)
+        return {
+            "ok": True,
+            "data_path": str(data_path),
+            "mode": "auto_data",
+            "message": "data path prepared; runner/dataset config handles dataset materialization",
+        }
+    return {
+        "ok": data_path.exists(),
+        "data_path": str(data_path),
+        "mode": "existing_path",
+        "message": "data path exists" if data_path.exists() else "data path does not exist",
+    }
+
+
 def run_worker_goal_status(
     *,
     job_id: Optional[str] = None,
@@ -335,6 +385,36 @@ def run_worker_goal_run(
 
     intent = str(state.get("intent") or _resolve_mode(task, goal=goal, mode=mode))
     auto_execute = bool(task.goal.get("auto_execute", True))
+
+    if state["stage"] == "environment_preparing":
+        prepared = _prepare_environment(task)
+        state["environment"] = prepared
+        if not prepared.get("ok"):
+            state.update(
+                stage="training_failed",
+                status="failed",
+                next_action="fix local environment preparation errors",
+                last_error=prepared.get("error") or "environment preparation failed",
+            )
+        else:
+            state.update(stage="data_preparing", next_action="prepare local data path")
+        _save_state(state)
+        return _base_response(state)
+
+    if state["stage"] == "data_preparing":
+        prepared = _prepare_data(task)
+        state["data"] = prepared
+        if not prepared.get("ok"):
+            state.update(
+                stage="training_failed",
+                status="failed",
+                next_action="fix local data preparation errors",
+                last_error=prepared.get("message") or "data preparation failed",
+            )
+        else:
+            state.update(stage="preflight", next_action="run local preflight")
+        _save_state(state)
+        return _base_response(state)
 
     if state["stage"] == "preflight":
         preflight = run_worker_preflight(task_file=task.path)

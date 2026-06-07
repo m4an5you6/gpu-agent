@@ -120,15 +120,39 @@ def merge_worker_task_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(runtime.get("env"), dict):
         runtime["env"] = {}
 
+    environment = out.setdefault("environment", {})
+    if not isinstance(environment, dict):
+        environment = {}
+        out["environment"] = environment
+    environment.setdefault("auto_install", False)
+    environment.setdefault("use_cn_mirror", False)
+
     training = out.setdefault("training", {})
     if not isinstance(training, dict):
         training = {}
         out["training"] = training
+    megatron = training.setdefault("megatron", {})
+    if not isinstance(megatron, dict):
+        megatron = {}
+        training["megatron"] = megatron
+    swift = training.setdefault("swift", {})
+    if not isinstance(swift, dict):
+        swift = {}
+        training["swift"] = swift
+    backend = str(megatron.get("backend") or "").strip().lower()
+    training.setdefault("runner", "swift_megatron" if backend == "swift" else "megatron_lm")
+    training.setdefault("training_type", "pretrain")
     training.setdefault("entrypoint", "pretrain_gpt.py")
+    training.setdefault("data_path", f"{runtime['workdir']}/data/{job_id}")
     training.setdefault("checkpoint_dir", f"{runtime['workdir']}/checkpoints")
     training.setdefault("log_dir", f"{runtime['workdir']}/logs")
     if not isinstance(training.get("extra_args"), list):
         training["extra_args"] = []
+
+    backend_info = out.setdefault("backend", {})
+    if not isinstance(backend_info, dict):
+        backend_info = {}
+        out["backend"] = backend_info
 
     preflight = out.setdefault("preflight", {})
     if not isinstance(preflight, dict):
@@ -220,10 +244,13 @@ def validate_worker_task(data: Any) -> List[str]:
         errors.append("runtime.megatron_lm_dir")
 
     training = _as_mapping(data, "training")
+    runner = str(training.get("runner") or "megatron_lm").strip().lower()
+    if runner not in {"megatron_lm", "swift_megatron"}:
+        errors.append("training.runner")
     command_template = str(training.get("command_template") or "").strip()
-    if not command_template and _is_blank(training.get("entrypoint")):
+    if runner == "megatron_lm" and not command_template and _is_blank(training.get("entrypoint")):
         errors.append("training.entrypoint")
-    if _is_blank(training.get("data_path")):
+    if runner == "megatron_lm" and _is_blank(training.get("data_path")):
         errors.append("training.data_path")
     if _is_blank(training.get("checkpoint_dir")):
         errors.append("training.checkpoint_dir")
@@ -265,8 +292,20 @@ class WorkerTask:
         return _as_mapping(self.merged, "runtime")
 
     @property
+    def environment(self) -> Dict[str, Any]:
+        return _as_mapping(self.merged, "environment")
+
+    @property
     def training(self) -> Dict[str, Any]:
         return _as_mapping(self.merged, "training")
+
+    @property
+    def training_runner(self) -> str:
+        return str(self.training.get("runner") or "megatron_lm")
+
+    @property
+    def backend(self) -> Dict[str, Any]:
+        return _as_mapping(self.merged, "backend")
 
     @property
     def preflight(self) -> Dict[str, Any]:
@@ -317,6 +356,8 @@ class WorkerTask:
             "master_port": self.master_port,
             "workdir": self.runtime.get("workdir"),
             "megatron_lm_dir": self.runtime.get("megatron_lm_dir"),
+            "training_runner": self.training_runner,
+            "training_type": self.training.get("training_type"),
             "data_path": self.training.get("data_path"),
             "checkpoint_dir": self.training.get("checkpoint_dir"),
             "log_dir": self.training.get("log_dir"),
@@ -325,6 +366,7 @@ class WorkerTask:
             "auto_execute": self.goal.get("auto_execute"),
             "conversion_output_dir": self.conversion.get("output_dir"),
             "inference_model_path": self.inference.get("model_path"),
+            "backend_training_job_id": self.backend.get("training_job_id"),
         }
 
 

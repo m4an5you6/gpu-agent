@@ -77,6 +77,16 @@ def _wait_for_exit(path, timeout=5):
     raise AssertionError(f"timed out waiting for {path}")
 
 
+def _advance_to_training(task):
+    first = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
+    assert first["stage"] == "data_preparing"
+    second = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
+    assert second["stage"] == "preflight"
+    third = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
+    assert third["stage"] == "training_running"
+    return third
+
+
 def test_worker_goal_runs_training_conversion_and_inference(tmp_path, monkeypatch):
     task = _write_goal_task(tmp_path)
     monkeypatch.setenv("GPUCLOUD_WORKER_STATE_DIR", str(tmp_path / "worker-state"))
@@ -91,26 +101,26 @@ def test_worker_goal_runs_training_conversion_and_inference(tmp_path, monkeypatc
     )
     monkeypatch.setattr("hermes_cli.gpucloud_worker_goal._health_ok", lambda port: True)
 
-    first = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
+    first = _advance_to_training(task)
     assert first["ok"]
     assert first["backend"] == "worker_local"
     assert first["stage"] == "training_running"
 
     train_exit = tmp_path / "logs" / "worker-goal-1.rank0.exitcode"
     _wait_for_exit(train_exit)
-    second = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
-    assert second["stage"] == "training_completed"
+    fourth = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
+    assert fourth["stage"] == "training_completed"
 
-    third = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
-    assert third["stage"] == "conversion_running"
+    fifth = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
+    assert fifth["stage"] == "conversion_running"
 
     conversion_exit = tmp_path / "logs" / "worker-goal-1.conversion.exitcode"
     _wait_for_exit(conversion_exit)
-    fourth = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
-    assert fourth["stage"] == "conversion_completed"
+    sixth = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
+    assert sixth["stage"] == "conversion_completed"
 
-    fifth = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
-    assert fifth["stage"] == "inference_running"
+    seventh = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
+    assert seventh["stage"] == "inference_running"
 
     final = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
     assert final["stage"] == "completed"
@@ -130,6 +140,8 @@ def test_worker_goal_preflight_failure_does_not_start_training(tmp_path, monkeyp
         lambda **kwargs: {"ok": False, "checks": [{"name": "gpu_count", "ok": False}]},
     )
 
+    run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
+    run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
     out = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
 
     assert out["ok"] is False
@@ -150,7 +162,7 @@ def test_worker_goal_conversion_failure_does_not_start_inference(tmp_path, monke
         lambda **kwargs: {"ok": True, "checks": []},
     )
 
-    first = run_worker_goal_run(task_file=task, goal="训练并推理 gpt2")
+    first = _advance_to_training(task)
     assert first["stage"] == "training_running"
     _wait_for_exit(tmp_path / "logs" / "worker-goal-1.rank0.exitcode")
 

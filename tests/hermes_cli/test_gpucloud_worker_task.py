@@ -56,6 +56,7 @@ def test_load_worker_task(tmp_path):
     assert task.master_addr == "10.0.0.10"
     assert task.master_port == 29500
     assert task.preflight["heterogeneous_policy"] == "warn"
+    assert task.training_runner == "megatron_lm"
 
 
 def test_worker_task_defaults_and_required_rank_fields():
@@ -96,3 +97,47 @@ def test_load_worker_task_reports_validation_errors(tmp_path):
         assert "distributed.node_rank" in exc.errors
     else:
         raise AssertionError("expected WorkerTaskError")
+
+
+def test_structured_backend_and_swift_runner_fields_are_preserved(tmp_path):
+    path = tmp_path / "swift.yaml"
+    path.write_text(
+        textwrap.dedent(
+            """
+            job_id: qwen-1
+            framework: megatron-lm
+            role: worker
+            environment:
+              auto_install: true
+              hf_endpoint: https://hf-mirror.com
+            distributed:
+              nnodes: 1
+              nproc_per_node: 1
+              node_rank: 0
+              master_addr: 127.0.0.1
+              master_port: 29500
+            runtime:
+              workdir: /tmp/qwen
+              megatron_lm_dir: /opt/Megatron-LM
+            training:
+              runner: swift_megatron
+              checkpoint_dir: /tmp/qwen/checkpoints
+              log_dir: /tmp/qwen/logs
+              swift:
+                model: Qwen2.5-Coder-7B
+                dataset: swift/sharegpt:common-zh
+            backend:
+              training_job_id: 88
+              gpu_id: 2
+              node_id: 2
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+
+    task = load_worker_task(path)
+
+    assert task.training_runner == "swift_megatron"
+    assert task.environment["auto_install"] is True
+    assert task.backend["training_job_id"] == 88
+    assert task.summary()["backend_training_job_id"] == 88

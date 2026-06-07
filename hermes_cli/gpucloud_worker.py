@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import shlex
+import shutil
 import signal
 import socket
 import subprocess
@@ -17,6 +18,7 @@ from hermes_constants import get_hermes_home
 from hermes_cli.gpucloud_distributed import (
     build_worker_plan,
     redact_text,
+    write_worker_runtime_artifacts,
     worker_env,
 )
 from hermes_cli.gpucloud_probe import probe_local_gpu
@@ -307,10 +309,32 @@ def run_worker_preflight(
     _check(checks, "heterogeneous_policy", True, policy, severity="warning")
 
     _check(checks, "workdir_writable", _path_writable(workdir), str(workdir))
-    _check(checks, "data_path_readable", data_path.exists() and os.access(data_path, os.R_OK), str(data_path))
+    auto_data = bool(
+        task.training_runner == "swift_megatron"
+        or task.training.get("dataset_config")
+        or (isinstance(task.training.get("megatron"), dict) and task.training["megatron"].get("auto_data"))
+    )
+    _check(
+        checks,
+        "data_path_readable",
+        auto_data or (data_path.exists() and os.access(data_path, os.R_OK)),
+        str(data_path) if not auto_data else f"{data_path} (auto_data/runner-managed)",
+        severity="warning" if auto_data else "error",
+    )
     _check(checks, "checkpoint_dir_writable", _path_writable(checkpoint_dir), str(checkpoint_dir))
     _check(checks, "log_dir_writable", _path_writable(log_dir), str(log_dir))
-    _check(checks, "megatron_entrypoint", entrypoint.is_file(), str(entrypoint))
+    if task.training_runner == "swift_megatron":
+        _check(checks, "megatron_swift_cli", shutil.which("megatron") is not None, "megatron CLI in PATH")
+        if task.nnodes > 1:
+            shared_cache = str(worker_env(task).get("MODELSCOPE_CACHE") or "").strip()
+            _check(
+                checks,
+                "modelscope_cache_shared",
+                bool(shared_cache),
+                "MODELSCOPE_CACHE must point to shared storage for multi-node Megatron-SWIFT",
+            )
+    else:
+        _check(checks, "megatron_entrypoint", entrypoint.is_file(), str(entrypoint))
 
     torch = _torch_probe(python)
     _check(checks, "torch_import", bool(torch.get("ok")), json.dumps(torch, ensure_ascii=False))
@@ -440,6 +464,8 @@ def run_worker_start(
     plan = build_worker_plan(task)
     state = _initial_state(task, plan, status="pending")
     state["exit_code_path"] = str(_expand_path(plan["log_path"]).with_suffix(".exitcode"))
+    state["training_runner"] = task.training_runner
+    state["runtime_artifacts"] = {}
     save_worker_state(state)
 
     if not skip_preflight:
@@ -453,6 +479,8 @@ def run_worker_start(
     env = os.environ.copy()
     env.update(worker_env(task))
     try:
+        state["runtime_artifacts"] = write_worker_runtime_artifacts(task, plan)
+        save_worker_state(state)
         proc = launch_wrapped_command(
             command=plan["launch_command"],
             workdir=plan["workdir"],
