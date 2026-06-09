@@ -354,7 +354,7 @@ def _strip_historical_media(messages: List[Dict[str, Any]]) -> List[Dict[str, An
 
     Shallow copies of touched messages only; input is never mutated.
     Port of Kilo-Org/kilocode#9434 (adapted for the OpenAI-style message
-    shape the hermes compressor emits).
+    shape the gpucloud compressor emits).
     """
     if not messages:
         return messages
@@ -715,7 +715,7 @@ class ContextCompressor(ContextEngine):
         """Return True when a high rough preflight estimate is known-noisy.
 
         ``estimate_request_tokens_rough(..., tools=...)`` intentionally
-        overestimates schema-heavy requests so Hermes compresses before a
+        overestimates schema-heavy requests so GPUCLOUD compresses before a
         provider rejects the payload. After a successful compressed API call,
         though, provider ``prompt_tokens`` are a better signal than repeating
         compaction from the same rough schema overhead. Defer only while the
@@ -1265,14 +1265,14 @@ Summary generation was unavailable, so this is a best-effort deterministic fallb
 
         # Current date for temporal anchoring (see ## Temporal Anchoring below).
         # Date-only granularity matches system_prompt.py:337 (PR #20451) and the
-        # user's configured timezone via hermes_time.now(). The compaction summary
+        # user's configured timezone via gpucloud_time.now(). The compaction summary
         # is a mid-conversation message that is NOT part of the cached prefix, so a
         # date here never affects prompt-cache stability. Resolved defensively —
         # a clock failure must never block compaction.
         try:
-            from hermes_time import now as _hermes_now
+            from gpucloud_time import now as _gpucloud_now
 
-            _today_str = _hermes_now().strftime("%Y-%m-%d")
+            _today_str = _gpucloud_now().strftime("%Y-%m-%d")
         except Exception:  # pragma: no cover - clock resolution is best-effort
             _today_str = ""
 

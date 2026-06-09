@@ -1,32 +1,32 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
-contextBridge.exposeInMainWorld('hermesDesktop', {
-  getConnection: profile => ipcRenderer.invoke('hermes:connection', profile),
-  revalidateConnection: () => ipcRenderer.invoke('hermes:connection:revalidate'),
-  touchBackend: profile => ipcRenderer.invoke('hermes:backend:touch', profile),
-  getGatewayWsUrl: profile => ipcRenderer.invoke('hermes:gateway:ws-url', profile),
-  getBootProgress: () => ipcRenderer.invoke('hermes:boot-progress:get'),
-  getConnectionConfig: profile => ipcRenderer.invoke('hermes:connection-config:get', profile),
-  saveConnectionConfig: payload => ipcRenderer.invoke('hermes:connection-config:save', payload),
-  applyConnectionConfig: payload => ipcRenderer.invoke('hermes:connection-config:apply', payload),
-  testConnectionConfig: payload => ipcRenderer.invoke('hermes:connection-config:test', payload),
-  probeConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:probe', remoteUrl),
-  oauthLoginConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:oauth-login', remoteUrl),
-  oauthLogoutConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:oauth-logout', remoteUrl),
+contextBridge.exposeInMainWorld('gpucloudDesktop', {
+  getConnection: profile => ipcRenderer.invoke('gpucloud:connection', profile),
+  revalidateConnection: () => ipcRenderer.invoke('gpucloud:connection:revalidate'),
+  touchBackend: profile => ipcRenderer.invoke('gpucloud:backend:touch', profile),
+  getGatewayWsUrl: profile => ipcRenderer.invoke('gpucloud:gateway:ws-url', profile),
+  getBootProgress: () => ipcRenderer.invoke('gpucloud:boot-progress:get'),
+  getConnectionConfig: profile => ipcRenderer.invoke('gpucloud:connection-config:get', profile),
+  saveConnectionConfig: payload => ipcRenderer.invoke('gpucloud:connection-config:save', payload),
+  applyConnectionConfig: payload => ipcRenderer.invoke('gpucloud:connection-config:apply', payload),
+  testConnectionConfig: payload => ipcRenderer.invoke('gpucloud:connection-config:test', payload),
+  probeConnectionConfig: remoteUrl => ipcRenderer.invoke('gpucloud:connection-config:probe', remoteUrl),
+  oauthLoginConnectionConfig: remoteUrl => ipcRenderer.invoke('gpucloud:connection-config:oauth-login', remoteUrl),
+  oauthLogoutConnectionConfig: remoteUrl => ipcRenderer.invoke('gpucloud:connection-config:oauth-logout', remoteUrl),
   profile: {
-    get: () => ipcRenderer.invoke('hermes:profile:get'),
-    set: name => ipcRenderer.invoke('hermes:profile:set', name)
+    get: () => ipcRenderer.invoke('gpucloud:profile:get'),
+    set: name => ipcRenderer.invoke('gpucloud:profile:set', name)
   },
-  api: request => ipcRenderer.invoke('hermes:api', request),
-  notify: payload => ipcRenderer.invoke('hermes:notify', payload),
-  requestMicrophoneAccess: () => ipcRenderer.invoke('hermes:requestMicrophoneAccess'),
-  readFileDataUrl: filePath => ipcRenderer.invoke('hermes:readFileDataUrl', filePath),
-  readFileText: filePath => ipcRenderer.invoke('hermes:readFileText', filePath),
-  selectPaths: options => ipcRenderer.invoke('hermes:selectPaths', options),
-  writeClipboard: text => ipcRenderer.invoke('hermes:writeClipboard', text),
-  saveImageFromUrl: url => ipcRenderer.invoke('hermes:saveImageFromUrl', url),
-  saveImageBuffer: (data, ext) => ipcRenderer.invoke('hermes:saveImageBuffer', { data, ext }),
-  saveClipboardImage: () => ipcRenderer.invoke('hermes:saveClipboardImage'),
+  api: request => ipcRenderer.invoke('gpucloud:api', request),
+  notify: payload => ipcRenderer.invoke('gpucloud:notify', payload),
+  requestMicrophoneAccess: () => ipcRenderer.invoke('gpucloud:requestMicrophoneAccess'),
+  readFileDataUrl: filePath => ipcRenderer.invoke('gpucloud:readFileDataUrl', filePath),
+  readFileText: filePath => ipcRenderer.invoke('gpucloud:readFileText', filePath),
+  selectPaths: options => ipcRenderer.invoke('gpucloud:selectPaths', options),
+  writeClipboard: text => ipcRenderer.invoke('gpucloud:writeClipboard', text),
+  saveImageFromUrl: url => ipcRenderer.invoke('gpucloud:saveImageFromUrl', url),
+  saveImageBuffer: (data, ext) => ipcRenderer.invoke('gpucloud:saveImageBuffer', { data, ext }),
+  saveClipboardImage: () => ipcRenderer.invoke('gpucloud:saveClipboardImage'),
   getPathForFile: file => {
     try {
       return webUtils.getPathForFile(file) || ''
@@ -34,35 +34,35 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
       return ''
     }
   },
-  normalizePreviewTarget: (target, baseDir) => ipcRenderer.invoke('hermes:normalizePreviewTarget', target, baseDir),
-  watchPreviewFile: url => ipcRenderer.invoke('hermes:watchPreviewFile', url),
-  stopPreviewFileWatch: id => ipcRenderer.invoke('hermes:stopPreviewFileWatch', id),
-  setTitleBarTheme: payload => ipcRenderer.send('hermes:titlebar-theme', payload),
-  setPreviewShortcutActive: active => ipcRenderer.send('hermes:previewShortcutActive', Boolean(active)),
-  openExternal: url => ipcRenderer.invoke('hermes:openExternal', url),
-  fetchLinkTitle: url => ipcRenderer.invoke('hermes:fetchLinkTitle', url),
+  normalizePreviewTarget: (target, baseDir) => ipcRenderer.invoke('gpucloud:normalizePreviewTarget', target, baseDir),
+  watchPreviewFile: url => ipcRenderer.invoke('gpucloud:watchPreviewFile', url),
+  stopPreviewFileWatch: id => ipcRenderer.invoke('gpucloud:stopPreviewFileWatch', id),
+  setTitleBarTheme: payload => ipcRenderer.send('gpucloud:titlebar-theme', payload),
+  setPreviewShortcutActive: active => ipcRenderer.send('gpucloud:previewShortcutActive', Boolean(active)),
+  openExternal: url => ipcRenderer.invoke('gpucloud:openExternal', url),
+  fetchLinkTitle: url => ipcRenderer.invoke('gpucloud:fetchLinkTitle', url),
   settings: {
-    getDefaultProjectDir: () => ipcRenderer.invoke('hermes:setting:defaultProjectDir:get'),
-    setDefaultProjectDir: dir => ipcRenderer.invoke('hermes:setting:defaultProjectDir:set', dir),
-    pickDefaultProjectDir: () => ipcRenderer.invoke('hermes:setting:defaultProjectDir:pick')
+    getDefaultProjectDir: () => ipcRenderer.invoke('gpucloud:setting:defaultProjectDir:get'),
+    setDefaultProjectDir: dir => ipcRenderer.invoke('gpucloud:setting:defaultProjectDir:set', dir),
+    pickDefaultProjectDir: () => ipcRenderer.invoke('gpucloud:setting:defaultProjectDir:pick')
   },
-  revealLogs: () => ipcRenderer.invoke('hermes:logs:reveal'),
-  getRecentLogs: () => ipcRenderer.invoke('hermes:logs:recent'),
-  readDir: dirPath => ipcRenderer.invoke('hermes:fs:readDir', dirPath),
-  gitRoot: startPath => ipcRenderer.invoke('hermes:fs:gitRoot', startPath),
+  revealLogs: () => ipcRenderer.invoke('gpucloud:logs:reveal'),
+  getRecentLogs: () => ipcRenderer.invoke('gpucloud:logs:recent'),
+  readDir: dirPath => ipcRenderer.invoke('gpucloud:fs:readDir', dirPath),
+  gitRoot: startPath => ipcRenderer.invoke('gpucloud:fs:gitRoot', startPath),
   terminal: {
-    dispose: id => ipcRenderer.invoke('hermes:terminal:dispose', id),
-    resize: (id, size) => ipcRenderer.invoke('hermes:terminal:resize', id, size),
-    start: options => ipcRenderer.invoke('hermes:terminal:start', options),
-    write: (id, data) => ipcRenderer.invoke('hermes:terminal:write', id, data),
+    dispose: id => ipcRenderer.invoke('gpucloud:terminal:dispose', id),
+    resize: (id, size) => ipcRenderer.invoke('gpucloud:terminal:resize', id, size),
+    start: options => ipcRenderer.invoke('gpucloud:terminal:start', options),
+    write: (id, data) => ipcRenderer.invoke('gpucloud:terminal:write', id, data),
     onData: (id, callback) => {
-      const channel = `hermes:terminal:${id}:data`
+      const channel = `gpucloud:terminal:${id}:data`
       const listener = (_event, payload) => callback(payload)
       ipcRenderer.on(channel, listener)
       return () => ipcRenderer.removeListener(channel, listener)
     },
     onExit: (id, callback) => {
-      const channel = `hermes:terminal:${id}:exit`
+      const channel = `gpucloud:terminal:${id}:exit`
       const listener = (_event, payload) => callback(payload)
       ipcRenderer.on(channel, listener)
       return () => ipcRenderer.removeListener(channel, listener)
@@ -70,67 +70,67 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   },
   onClosePreviewRequested: callback => {
     const listener = () => callback()
-    ipcRenderer.on('hermes:close-preview-requested', listener)
-    return () => ipcRenderer.removeListener('hermes:close-preview-requested', listener)
+    ipcRenderer.on('gpucloud:close-preview-requested', listener)
+    return () => ipcRenderer.removeListener('gpucloud:close-preview-requested', listener)
   },
   onOpenUpdatesRequested: callback => {
     const listener = () => callback()
-    ipcRenderer.on('hermes:open-updates', listener)
-    return () => ipcRenderer.removeListener('hermes:open-updates', listener)
+    ipcRenderer.on('gpucloud:open-updates', listener)
+    return () => ipcRenderer.removeListener('gpucloud:open-updates', listener)
   },
   onWindowStateChanged: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:window-state-changed', listener)
-    return () => ipcRenderer.removeListener('hermes:window-state-changed', listener)
+    ipcRenderer.on('gpucloud:window-state-changed', listener)
+    return () => ipcRenderer.removeListener('gpucloud:window-state-changed', listener)
   },
   onPreviewFileChanged: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:preview-file-changed', listener)
-    return () => ipcRenderer.removeListener('hermes:preview-file-changed', listener)
+    ipcRenderer.on('gpucloud:preview-file-changed', listener)
+    return () => ipcRenderer.removeListener('gpucloud:preview-file-changed', listener)
   },
   onBackendExit: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:backend-exit', listener)
-    return () => ipcRenderer.removeListener('hermes:backend-exit', listener)
+    ipcRenderer.on('gpucloud:backend-exit', listener)
+    return () => ipcRenderer.removeListener('gpucloud:backend-exit', listener)
   },
   onPowerResume: callback => {
     const listener = () => callback()
-    ipcRenderer.on('hermes:power-resume', listener)
-    return () => ipcRenderer.removeListener('hermes:power-resume', listener)
+    ipcRenderer.on('gpucloud:power-resume', listener)
+    return () => ipcRenderer.removeListener('gpucloud:power-resume', listener)
   },
   onBootProgress: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:boot-progress', listener)
-    return () => ipcRenderer.removeListener('hermes:boot-progress', listener)
+    ipcRenderer.on('gpucloud:boot-progress', listener)
+    return () => ipcRenderer.removeListener('gpucloud:boot-progress', listener)
   },
   // First-launch bootstrap progress -- emitted by the install.ps1 stage
   // runner in main.cjs (apps/desktop/electron/bootstrap-runner.cjs).
   // Renderer's install overlay subscribes to live events and queries the
   // current snapshot via getBootstrapState() to recover after a devtools
   // reload mid-bootstrap.
-  getBootstrapState: () => ipcRenderer.invoke('hermes:bootstrap:get'),
-  resetBootstrap: () => ipcRenderer.invoke('hermes:bootstrap:reset'),
-  repairBootstrap: () => ipcRenderer.invoke('hermes:bootstrap:repair'),
-  cancelBootstrap: () => ipcRenderer.invoke('hermes:bootstrap:cancel'),
+  getBootstrapState: () => ipcRenderer.invoke('gpucloud:bootstrap:get'),
+  resetBootstrap: () => ipcRenderer.invoke('gpucloud:bootstrap:reset'),
+  repairBootstrap: () => ipcRenderer.invoke('gpucloud:bootstrap:repair'),
+  cancelBootstrap: () => ipcRenderer.invoke('gpucloud:bootstrap:cancel'),
   onBootstrapEvent: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:bootstrap:event', listener)
-    return () => ipcRenderer.removeListener('hermes:bootstrap:event', listener)
+    ipcRenderer.on('gpucloud:bootstrap:event', listener)
+    return () => ipcRenderer.removeListener('gpucloud:bootstrap:event', listener)
   },
-  getVersion: () => ipcRenderer.invoke('hermes:version'),
+  getVersion: () => ipcRenderer.invoke('gpucloud:version'),
   uninstall: {
-    summary: () => ipcRenderer.invoke('hermes:uninstall:summary'),
-    run: mode => ipcRenderer.invoke('hermes:uninstall:run', { mode })
+    summary: () => ipcRenderer.invoke('gpucloud:uninstall:summary'),
+    run: mode => ipcRenderer.invoke('gpucloud:uninstall:run', { mode })
   },
   updates: {
-    check: () => ipcRenderer.invoke('hermes:updates:check'),
-    apply: opts => ipcRenderer.invoke('hermes:updates:apply', opts),
-    getBranch: () => ipcRenderer.invoke('hermes:updates:branch:get'),
-    setBranch: name => ipcRenderer.invoke('hermes:updates:branch:set', name),
+    check: () => ipcRenderer.invoke('gpucloud:updates:check'),
+    apply: opts => ipcRenderer.invoke('gpucloud:updates:apply', opts),
+    getBranch: () => ipcRenderer.invoke('gpucloud:updates:branch:get'),
+    setBranch: name => ipcRenderer.invoke('gpucloud:updates:branch:set', name),
     onProgress: callback => {
       const listener = (_event, payload) => callback(payload)
-      ipcRenderer.on('hermes:updates:progress', listener)
-      return () => ipcRenderer.removeListener('hermes:updates:progress', listener)
+      ipcRenderer.on('gpucloud:updates:progress', listener)
+      return () => ipcRenderer.removeListener('gpucloud:updates:progress', listener)
     }
   }
 })

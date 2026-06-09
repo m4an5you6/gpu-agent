@@ -16,16 +16,16 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _isolate(tmp_path, monkeypatch):
-    """Redirect HERMES_HOME so load_config() reads our test config.yaml."""
-    hermes_home = tmp_path / ".hermes"
-    hermes_home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-    (hermes_home / "config.yaml").write_text("model:\n  default: test-model\n")
+    """Redirect GPUCLOUD_HOME so load_config() reads our test config.yaml."""
+    gpucloud_home = tmp_path / ".gpucloud"
+    gpucloud_home.mkdir()
+    monkeypatch.setenv("GPUCLOUD_HOME", str(gpucloud_home))
+    (gpucloud_home / "config.yaml").write_text("model:\n  default: test-model\n")
 
 
 def _write_config(tmp_path, config_dict):
     import yaml
-    (tmp_path / ".hermes" / "config.yaml").write_text(yaml.dump(config_dict))
+    (tmp_path / ".gpucloud" / "config.yaml").write_text(yaml.dump(config_dict))
 
 
 class TestApplyUserDefaultHeadersHelper:

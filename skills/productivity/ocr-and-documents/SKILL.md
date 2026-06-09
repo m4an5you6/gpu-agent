@@ -2,11 +2,11 @@
 name: ocr-and-documents
 description: "Extract text from PDFs/scans (pymupdf, marker-pdf)."
 version: 2.3.0
-author: Hermes Agent
+author: GPUCLOUD Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  hermes:
+  gpucloud:
     tags: [PDF, Documents, Research, Arxiv, Text-Extraction, OCR]
     related_skills: [powerpoint]
 ---

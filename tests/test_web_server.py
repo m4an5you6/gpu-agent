@@ -1,6 +1,6 @@
 import uvicorn
 
-from hermes_cli import web_server
+from gpucloud_cli import web_server
 
 
 def test_start_server_enables_ws_ping_for_half_open_detection(monkeypatch):

@@ -10,7 +10,7 @@ import {
   registerSessionPreview
 } from '@/store/preview'
 import { $currentCwd, $messages } from '@/store/session'
-import type { RpcEvent } from '@/types/hermes'
+import type { RpcEvent } from '@/types/gpucloud'
 
 import { usePreviewRouting } from './use-preview-routing'
 
@@ -66,7 +66,7 @@ describe('usePreviewRouting', () => {
     clearSessionPreviewRegistry()
     handleEvent = () => undefined
 
-    Object.defineProperty(window, 'hermesDesktop', {
+    Object.defineProperty(window, 'gpucloudDesktop', {
       configurable: true,
       value: {
         normalizePreviewTarget: vi.fn(async (target: string) => previewTarget(target))
@@ -117,7 +117,7 @@ describe('usePreviewRouting', () => {
     })
 
     expect($previewTarget.get()).toBeNull()
-    expect(window.hermesDesktop.normalizePreviewTarget).not.toHaveBeenCalled()
+    expect(window.gpucloudDesktop.normalizePreviewTarget).not.toHaveBeenCalled()
   })
 
   it('registers structured tool-result preview targets', async () => {
@@ -141,7 +141,7 @@ describe('usePreviewRouting', () => {
       expect($previewTarget.get()?.source).toBe('./dist/index.html')
     })
 
-    expect(window.localStorage.getItem('hermes.desktop.sessionPreviews.v1')).toContain('./dist/index.html')
+    expect(window.localStorage.getItem('gpucloud.desktop.sessionPreviews.v1')).toContain('./dist/index.html')
   })
 
   it('registers html previews from edit inline diffs', async () => {

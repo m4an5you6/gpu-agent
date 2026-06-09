@@ -1,8 +1,8 @@
 import ignore from 'ignore'
 
-import type { HermesReadDirEntry, HermesReadDirResult } from '@/global'
+import type { GPUCLOUDReadDirEntry, GPUCLOUDReadDirResult } from '@/global'
 
-export type ProjectTreeEntry = HermesReadDirEntry
+export type ProjectTreeEntry = GPUCLOUDReadDirEntry
 
 interface GitignoreRule {
   base: string
@@ -63,7 +63,7 @@ function ancestorDirs(root: string, dir: string) {
 }
 
 async function gitRootFor(start: string) {
-  if (!window.hermesDesktop?.gitRoot) {
+  if (!window.gpucloudDesktop?.gitRoot) {
     return null
   }
 
@@ -71,7 +71,7 @@ async function gitRootFor(start: string) {
   let cached = gitRootCache.get(key)
 
   if (!cached) {
-    cached = window.hermesDesktop.gitRoot(key)
+    cached = window.gpucloudDesktop.gitRoot(key)
     gitRootCache.set(key, cached)
   }
 
@@ -80,18 +80,18 @@ async function gitRootFor(start: string) {
 
 /** Read .gitignore at `dir` if it actually exists — never probe missing files. */
 async function readGitignore(dir: string): Promise<GitignoreRule | null> {
-  if (!window.hermesDesktop?.readDir || !window.hermesDesktop.readFileDataUrl) {
+  if (!window.gpucloudDesktop?.readDir || !window.gpucloudDesktop.readFileDataUrl) {
     return null
   }
 
   try {
-    const listing = await window.hermesDesktop.readDir(dir)
+    const listing = await window.gpucloudDesktop.readDir(dir)
 
     if (!listing.entries.some(e => e.name === '.gitignore' && !e.isDirectory)) {
       return null
     }
 
-    const text = decodeDataUrl(await window.hermesDesktop.readFileDataUrl(`${dir}/.gitignore`))
+    const text = decodeDataUrl(await window.gpucloudDesktop.readFileDataUrl(`${dir}/.gitignore`))
 
     return { base: dir, ig: ignore().add(text) }
   } catch {
@@ -111,7 +111,7 @@ async function gitignoreFor(dir: string) {
   return cached
 }
 
-function ignoredBy(rules: GitignoreRule[], entry: HermesReadDirEntry) {
+function ignoredBy(rules: GitignoreRule[], entry: GPUCLOUDReadDirEntry) {
   return rules.some(rule => {
     const rel = relativeTo(rule.base, entry.path)
 
@@ -123,7 +123,7 @@ function ignoredBy(rules: GitignoreRule[], entry: HermesReadDirEntry) {
   })
 }
 
-async function filterIgnored(entries: HermesReadDirEntry[], rootPath: string, dirPath: string) {
+async function filterIgnored(entries: GPUCLOUDReadDirEntry[], rootPath: string, dirPath: string) {
   const root = await gitRootFor(rootPath)
 
   if (!root) {
@@ -137,12 +137,12 @@ async function filterIgnored(entries: HermesReadDirEntry[], rootPath: string, di
   return rules.length > 0 ? entries.filter(entry => !ignoredBy(rules, entry)) : entries
 }
 
-export async function readProjectDir(dirPath: string, rootPath = dirPath): Promise<HermesReadDirResult> {
-  if (!window.hermesDesktop) {
+export async function readProjectDir(dirPath: string, rootPath = dirPath): Promise<GPUCLOUDReadDirResult> {
+  if (!window.gpucloudDesktop) {
     return { entries: [], error: 'no-bridge' }
   }
 
-  const result = await window.hermesDesktop.readDir(dirPath)
+  const result = await window.gpucloudDesktop.readDir(dirPath)
 
   return { ...result, entries: await filterIgnored(result.entries, rootPath, dirPath) }
 }

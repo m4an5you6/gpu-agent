@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { SessionInfo } from '@/types/hermes'
+import type { SessionInfo } from '@/types/gpucloud'
 
 import {
   $attentionSessionIds,

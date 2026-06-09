@@ -291,10 +291,10 @@ class TestConfigMigration:
         }
         config_path.write_text(yaml.dump(config), encoding="utf-8")
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        # Re-import to pick up the new HERMES_HOME
+        monkeypatch.setenv("GPUCLOUD_HOME", str(tmp_path))
+        # Re-import to pick up the new GPUCLOUD_HOME
         import importlib
-        import hermes_cli.config as cfg_mod
+        import gpucloud_cli.config as cfg_mod
         importlib.reload(cfg_mod)
 
         result = cfg_mod.migrate_config(interactive=False, quiet=True)
@@ -318,9 +318,9 @@ class TestConfigMigration:
         }
         config_path.write_text(yaml.dump(config), encoding="utf-8")
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("GPUCLOUD_HOME", str(tmp_path))
         import importlib
-        import hermes_cli.config as cfg_mod
+        import gpucloud_cli.config as cfg_mod
         importlib.reload(cfg_mod)
 
         cfg_mod.migrate_config(interactive=False, quiet=True)

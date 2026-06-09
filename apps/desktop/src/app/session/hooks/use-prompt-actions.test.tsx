@@ -6,11 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { $sessions, setSessions } from '@/store/session'
 import { $connection } from '@/store/session'
 import type { ComposerAttachment } from '@/store/composer'
-import type { SessionInfo } from '@/types/hermes'
+import type { SessionInfo } from '@/types/gpucloud'
 
 import { usePromptActions } from './use-prompt-actions'
 
-vi.mock('@/hermes', () => ({
+vi.mock('@/gpucloud', () => ({
   getProfiles: vi.fn(async () => ({ profiles: [] })),
   setApiRequestProfile: vi.fn(),
   transcribeAudio: vi.fn()
@@ -343,7 +343,7 @@ describe('usePromptActions file attachment sync', () => {
     // not the original /Users/... path (which would dead-end as "outside the
     // allowed workspace").
     $connection.set({ mode: 'remote' } as never)
-    Object.defineProperty(window, 'hermesDesktop', {
+    Object.defineProperty(window, 'gpucloudDesktop', {
       configurable: true,
       value: { readFileDataUrl: vi.fn(async () => 'data:text/plain;base64,aGVsbG8=') }
     })
@@ -354,8 +354,8 @@ describe('usePromptActions file attachment sync', () => {
       if (method === 'file.attach') {
         return {
           attached: true,
-          path: '/remote/work/.hermes/desktop-attachments/report.txt',
-          ref_text: '@file:.hermes/desktop-attachments/report.txt',
+          path: '/remote/work/.gpucloud/desktop-attachments/report.txt',
+          ref_text: '@file:.gpucloud/desktop-attachments/report.txt',
           uploaded: true
         } as never
       }
@@ -377,7 +377,7 @@ describe('usePromptActions file attachment sync', () => {
     })
     expect(calls[1]?.params).toEqual({
       session_id: RUNTIME_SESSION_ID,
-      text: '@file:.hermes/desktop-attachments/report.txt\n\nconvert this to epub'
+      text: '@file:.gpucloud/desktop-attachments/report.txt\n\nconvert this to epub'
     })
   })
 

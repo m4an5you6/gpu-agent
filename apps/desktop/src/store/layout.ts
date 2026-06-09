@@ -20,12 +20,12 @@ export const FILE_BROWSER_MAX_WIDTH = '20rem'
 
 export const SIDEBAR_SESSIONS_PAGE_SIZE = 50
 
-const SIDEBAR_PINNED_STORAGE_KEY = 'hermes.desktop.pinnedSessions'
-const SIDEBAR_AGENTS_GROUPED_STORAGE_KEY = 'hermes.desktop.agentsGroupedByWorkspace'
-const SIDEBAR_CRON_OPEN_STORAGE_KEY = 'hermes.desktop.sidebarCronOpen'
-const SIDEBAR_SESSION_ORDER_STORAGE_KEY = 'hermes.desktop.sessionOrder'
-const SIDEBAR_WORKSPACE_ORDER_STORAGE_KEY = 'hermes.desktop.workspaceOrder'
-const PANES_FLIPPED_STORAGE_KEY = 'hermes.desktop.panesFlipped'
+const SIDEBAR_PINNED_STORAGE_KEY = 'gpucloud.desktop.pinnedSessions'
+const SIDEBAR_AGENTS_GROUPED_STORAGE_KEY = 'gpucloud.desktop.agentsGroupedByWorkspace'
+const SIDEBAR_CRON_OPEN_STORAGE_KEY = 'gpucloud.desktop.sidebarCronOpen'
+const SIDEBAR_SESSION_ORDER_STORAGE_KEY = 'gpucloud.desktop.sessionOrder'
+const SIDEBAR_WORKSPACE_ORDER_STORAGE_KEY = 'gpucloud.desktop.workspaceOrder'
+const PANES_FLIPPED_STORAGE_KEY = 'gpucloud.desktop.panesFlipped'
 
 export const CHAT_SIDEBAR_PANE_ID = 'chat-sidebar'
 export const FILE_BROWSER_PANE_ID = 'file-browser'
@@ -105,7 +105,7 @@ export function setFileBrowserOpen(open: boolean) {
 
 // Hotkey → focus the sessions search field. Opens the sidebar first, then lets
 // the field (which only mounts when the sidebar is open) subscribe + focus.
-export const SESSION_SEARCH_FOCUS_EVENT = 'hermes:focus-session-search'
+export const SESSION_SEARCH_FOCUS_EVENT = 'gpucloud:focus-session-search'
 
 export function requestSessionSearchFocus() {
   setSidebarOpen(true)

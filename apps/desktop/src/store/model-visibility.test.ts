@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ModelOptionProvider } from '@/types/hermes'
+import type { ModelOptionProvider } from '@/types/gpucloud'
 
 import { effectiveVisibleKeys, modelVisibilityKey } from './model-visibility'
 

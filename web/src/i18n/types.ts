@@ -141,8 +141,8 @@ export interface Translations {
     starting: string;
     startedInBackground: string;
     stopped: string;
-    updateHermes: string;
-    updatingHermes: string;
+    updateGPUCLOUD: string;
+    updatingGPUCLOUD: string;
     waitingForOutput: string;
   };
 
@@ -548,7 +548,7 @@ export interface Translations {
     fontMono?: string;
   };
 
-  // ── Achievements plugin (plugins/hermes-achievements) ──
+  // ── Achievements plugin (plugins/gpucloud-achievements) ──
   achievements: {
     hero: {
       kicker: string;

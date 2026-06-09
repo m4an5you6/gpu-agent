@@ -1,6 +1,6 @@
 # Photon iMessage platform plugin
 
-This plugin connects Hermes Agent to iMessage (and other Spectrum
+This plugin connects GPUCLOUD Agent to iMessage (and other Spectrum
 interfaces) through [Photon][photon] — a managed service that handles
 iMessage line allocation, delivery, and abuse-prevention so users don't
 have to run their own Mac relay.
@@ -13,7 +13,7 @@ recommend for everyone who doesn't already pay for a dedicated number.
 Like Discord and Slack, Photon is a **persistent-connection** channel — no
 public URL, no webhook, no signing secret. The `spectrum-ts` SDK holds a
 long-lived **gRPC stream** to Photon for both directions. Because the SDK is
-TypeScript-only, Hermes runs it inside a small supervised Node sidecar and
+TypeScript-only, GPUCLOUD runs it inside a small supervised Node sidecar and
 talks to it over loopback.
 
 ```
@@ -36,23 +36,23 @@ talks to it over loopback.
   a `MessageEvent` to the gateway. It reconnects automatically if the stream
   drops; the sidecar owns the gRPC reconnect to Photon.
 - **Outbound**: `send` / `send_typing` are loopback POSTs to the sidecar,
-  authenticated with a shared `X-Hermes-Sidecar-Token`.
+  authenticated with a shared `X-GPUCLOUD-Sidecar-Token`.
 
 ## First-time setup
 
 ```bash
 # One-shot setup: device login (opens browser) + project + user + sidecar deps
-hermes photon setup --phone +15551234567
+gpucloud photon setup --phone +15551234567
 
 # Start the gateway
-hermes gateway start --platform photon
+gpucloud gateway start --platform photon
 ```
 
-`hermes photon setup` does, in order:
+`gpucloud photon setup` does, in order:
 
 1. **Device login** (RFC 8628, `client_id=photon-cli`) — opens
    `https://app.photon.codes/` for approval and stores the bearer token.
-2. **Find or create** the `Hermes Agent` project on the Photon dashboard.
+2. **Find or create** the `GPUCLOUD Agent` project on the Photon dashboard.
 3. **Enable Spectrum**, read the project's `spectrumProjectId`, rotate the
    project secret, and persist both.
 4. **Register your phone number** as a Spectrum user (idempotent — skipped if
@@ -61,14 +61,14 @@ hermes gateway start --platform photon
    agent.
 6. **Install the sidecar deps** (`spectrum-ts`).
 
-There is no separate `login` command; like every other Hermes channel,
+There is no separate `login` command; like every other GPUCLOUD channel,
 onboarding goes through one setup surface. Re-running `setup` reuses an
 existing token/project, so it's safe to run again to finish a partial setup.
-Run `hermes photon status` to see what's configured.
+Run `gpucloud photon status` to see what's configured.
 
 ## Credentials
 
-Runtime SDK credentials live in `~/.hermes/.env` (the same place every other
+Runtime SDK credentials live in `~/.gpucloud/.env` (the same place every other
 channel keeps its token), and the adapter reads them from the environment:
 
 ```bash
@@ -76,7 +76,7 @@ PHOTON_PROJECT_ID=<spectrumProjectId>   # the SDK's projectId
 PHOTON_PROJECT_SECRET=<projectSecret>
 ```
 
-Management metadata lives in `~/.hermes/auth.json` under `credential_pool`:
+Management metadata lives in `~/.gpucloud/auth.json` under `credential_pool`:
 
 ```jsonc
 {
@@ -89,7 +89,7 @@ Management metadata lives in `~/.hermes/auth.json` under `credential_pool`:
         "dashboard_project_id": "<dashboard id>",
         "spectrum_project_id": "<spectrumProjectId>",
         "project_secret": "<projectSecret>",
-        "name": "Hermes Agent"
+        "name": "GPUCLOUD Agent"
       }
     ]
   }

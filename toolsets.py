@@ -28,7 +28,7 @@ from typing import List, Dict, Any, Set, Optional
 
 # Shared tool list for CLI and all messaging platform toolsets.
 # Edit this once to update all platforms simultaneously.
-_HERMES_CORE_TOOLS = [
+_GPUCLOUD_CORE_TOOLS = [
     # Web
     "web_search", "web_extract",
     # Terminal + process management
@@ -61,7 +61,7 @@ _HERMES_CORE_TOOLS = [
     # Home Assistant smart home control (gated on HASS_TOKEN via check_fn)
     "ha_list_entities", "ha_get_state", "ha_list_services", "ha_call_service",
     # Kanban multi-agent coordination — only in schema when the agent is
-    # spawned as a kanban worker (HERMES_KANBAN_TASK env set) or the current
+    # spawned as a kanban worker (GPUCLOUD_KANBAN_TASK env set) or the current
     # profile explicitly enables the kanban toolset. Gated via check_fn in
     # tools/kanban_tools.py.
     "kanban_show", "kanban_list",
@@ -75,7 +75,7 @@ _HERMES_CORE_TOOLS = [
 # Webhook events may originate from untrusted third-party content (for example,
 # public PR titles/comments). Keep the default webhook toolset intentionally
 # constrained to avoid local file/system execution by prompt injection.
-_HERMES_WEBHOOK_SAFE_TOOLS = [
+_GPUCLOUD_WEBHOOK_SAFE_TOOLS = [
     "web_search",
     "web_extract",
     "vision_analyze",
@@ -104,7 +104,7 @@ TOOLSETS = {
             "Search X (Twitter) posts and threads via xAI's built-in "
             "x_search Responses tool. Available when xAI credentials are "
             "configured (SuperGrok OAuth or XAI_API_KEY). Off by default; "
-            "enable in `hermes tools` → X (Twitter) Search."
+            "enable in `gpucloud tools` → X (Twitter) Search."
         ),
         "tools": ["x_search"],
         "includes": []
@@ -133,7 +133,7 @@ TOOLSETS = {
             "Video generation tools. Single ``video_generate`` tool covers "
             "text-to-video (prompt only) and image-to-video (prompt + "
             "image_url) — the active backend auto-routes. Configure via "
-            "``hermes tools`` → Video Generation."
+            "``gpucloud tools`` → Video Generation."
         ),
         "tools": ["video_generate"],
         "includes": []
@@ -258,7 +258,7 @@ TOOLSETS = {
     "kanban": {
         "description": (
             "Kanban multi-agent coordination — only active when the agent "
-            "is spawned by the kanban dispatcher (HERMES_KANBAN_TASK env "
+            "is spawned by the kanban dispatcher (GPUCLOUD_KANBAN_TASK env "
             "set). The dispatcher runs inside the gateway by default; see "
             "`kanban.dispatch_in_gateway` in config.yaml. Lets workers mark "
             "tasks done with structured handoffs, block for human input, "
@@ -338,13 +338,13 @@ TOOLSETS = {
     },
     
     # ==========================================================================
-    # Full Hermes toolsets (CLI + messaging platforms)
+    # Full GPUCLOUD toolsets (CLI + messaging platforms)
     #
     # All platforms share the same core tools (including send_message,
     # which is gated on gateway running via its check_fn).
     # ==========================================================================
 
-    "hermes-acp": {
+    "gpucloud-acp": {
         "description": "Editor integration (VS Code, Zed, JetBrains) — coding-focused tools without messaging, audio, or clarify UI",
         "tools": [
             "web_search", "web_extract",
@@ -363,7 +363,7 @@ TOOLSETS = {
         "includes": []
     },
 
-    "hermes-api-server": {
+    "gpucloud-api-server": {
         "description": "OpenAI-compatible API server — full agent tools accessible via HTTP (no interactive UI tools like clarify or send_message)",
         "tools": [
             # Web
@@ -396,95 +396,95 @@ TOOLSETS = {
         "includes": []
     },
     
-    "hermes-cli": {
+    "gpucloud-cli": {
         "description": "Full interactive CLI toolset - all default tools plus cronjob management",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-cron": {
-        # Mirrors hermes-cli so cron's "default" toolset is the same set of
-        # core tools users see interactively — then `hermes tools` filters
+    "gpucloud-cron": {
+        # Mirrors gpucloud-cli so cron's "default" toolset is the same set of
+        # core tools users see interactively — then `gpucloud tools` filters
         # them down per the platform config. _DEFAULT_OFF_TOOLSETS (moa,
         # homeassistant) are excluded by _get_platform_tools() unless
         # the user explicitly enables them.
-        "description": "Default cron toolset - same core tools as hermes-cli; gated by `hermes tools`",
-        "tools": _HERMES_CORE_TOOLS,
+        "description": "Default cron toolset - same core tools as gpucloud-cli; gated by `gpucloud tools`",
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-telegram": {
+    "gpucloud-telegram": {
         "description": "Telegram bot toolset - full access for personal use (terminal has safety checks)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
     
-    "hermes-discord": {
+    "gpucloud-discord": {
         "description": "Discord bot toolset - full access (terminal has safety checks via dangerous command approval)",
-        "tools": _HERMES_CORE_TOOLS + [
+        "tools": _GPUCLOUD_CORE_TOOLS + [
             "discord",
             "discord_admin",
         ],
         "includes": []
     },
     
-    "hermes-whatsapp": {
+    "gpucloud-whatsapp": {
         "description": "WhatsApp bot toolset - similar to Telegram (personal messaging, more trusted)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
     
-    "hermes-slack": {
+    "gpucloud-slack": {
         "description": "Slack bot toolset - full access for workspace use (terminal has safety checks)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
     
-    "hermes-signal": {
+    "gpucloud-signal": {
         "description": "Signal bot toolset - encrypted messaging platform (full access)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-bluebubbles": {
+    "gpucloud-bluebubbles": {
         "description": "BlueBubbles iMessage bot toolset - Apple iMessage via local BlueBubbles server",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-homeassistant": {
+    "gpucloud-homeassistant": {
         "description": "Home Assistant bot toolset - smart home event monitoring and control",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-email": {
-        "description": "Email bot toolset - interact with Hermes via email (IMAP/SMTP)",
-        "tools": _HERMES_CORE_TOOLS,
+    "gpucloud-email": {
+        "description": "Email bot toolset - interact with GPUCLOUD via email (IMAP/SMTP)",
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-mattermost": {
+    "gpucloud-mattermost": {
         "description": "Mattermost bot toolset - self-hosted team messaging (full access)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-matrix": {
+    "gpucloud-matrix": {
         "description": "Matrix bot toolset - decentralized encrypted messaging (full access)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-dingtalk": {
+    "gpucloud-dingtalk": {
         "description": "DingTalk bot toolset - enterprise messaging platform (full access)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-feishu": {
+    "gpucloud-feishu": {
         "description": "Feishu/Lark bot toolset - enterprise messaging via Feishu/Lark (full access)",
-        "tools": _HERMES_CORE_TOOLS + [
+        "tools": _GPUCLOUD_CORE_TOOLS + [
             "feishu_doc_read",
             "feishu_drive_list_comments",
             "feishu_drive_list_comment_replies",
@@ -494,33 +494,33 @@ TOOLSETS = {
         "includes": []
     },
 
-    "hermes-weixin": {
+    "gpucloud-weixin": {
         "description": "Weixin bot toolset - personal WeChat messaging via iLink (full access)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-qqbot": {
+    "gpucloud-qqbot": {
         "description": "QQBot toolset - QQ messaging via Official Bot API v2 (full access)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-wecom": {
+    "gpucloud-wecom": {
         "description": "WeCom bot toolset - enterprise WeChat messaging (full access)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-wecom-callback": {
+    "gpucloud-wecom-callback": {
         "description": "WeCom callback toolset - enterprise self-built app messaging (full access)",
-        "tools": _HERMES_CORE_TOOLS,
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-yuanbao": {
+    "gpucloud-yuanbao": {
         "description": "Yuanbao Bot 元宝消息平台工具集 - 群信息、成员查询、私聊、贴纸表情",
-        "tools": _HERMES_CORE_TOOLS + [
+        "tools": _GPUCLOUD_CORE_TOOLS + [
             "yb_query_group_info",
             "yb_query_group_members",
             "yb_send_dm",
@@ -531,22 +531,22 @@ TOOLSETS = {
         "includes": []
     },
 
-    "hermes-sms": {
-        "description": "SMS bot toolset - interact with Hermes via SMS (Twilio)",
-        "tools": _HERMES_CORE_TOOLS,
+    "gpucloud-sms": {
+        "description": "SMS bot toolset - interact with GPUCLOUD via SMS (Twilio)",
+        "tools": _GPUCLOUD_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-webhook": {
+    "gpucloud-webhook": {
         "description": "Webhook toolset - receive and process external webhook events",
-        "tools": _HERMES_WEBHOOK_SAFE_TOOLS,
+        "tools": _GPUCLOUD_WEBHOOK_SAFE_TOOLS,
         "includes": []
     },
 
-    "hermes-gateway": {
+    "gpucloud-gateway": {
         "description": "Gateway toolset - union of all messaging platform tools",
         "tools": [],
-        "includes": ["hermes-telegram", "hermes-discord", "hermes-whatsapp", "hermes-slack", "hermes-signal", "hermes-bluebubbles", "hermes-homeassistant", "hermes-email", "hermes-sms", "hermes-mattermost", "hermes-matrix", "hermes-dingtalk", "hermes-feishu", "hermes-wecom", "hermes-wecom-callback", "hermes-weixin", "hermes-qqbot", "hermes-webhook", "hermes-yuanbao"]
+        "includes": ["gpucloud-telegram", "gpucloud-discord", "gpucloud-whatsapp", "gpucloud-slack", "gpucloud-signal", "gpucloud-bluebubbles", "gpucloud-homeassistant", "gpucloud-email", "gpucloud-sms", "gpucloud-mattermost", "gpucloud-matrix", "gpucloud-dingtalk", "gpucloud-feishu", "gpucloud-wecom", "gpucloud-wecom-callback", "gpucloud-weixin", "gpucloud-qqbot", "gpucloud-webhook", "gpucloud-yuanbao"]
     }
 }
 
@@ -641,15 +641,15 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
     # Get toolset definition
     toolset = get_toolset(name)
     if not toolset:
-        # Auto-generate a toolset for plugin platforms (hermes-<name>).
-        # Gives them _HERMES_CORE_TOOLS plus any tools the plugin registered
+        # Auto-generate a toolset for plugin platforms (gpucloud-<name>).
+        # Gives them _GPUCLOUD_CORE_TOOLS plus any tools the plugin registered
         # into a toolset matching the platform name.
-        if name.startswith("hermes-"):
-            platform_name = name[len("hermes-"):]
+        if name.startswith("gpucloud-"):
+            platform_name = name[len("gpucloud-"):]
             try:
                 from gateway.platform_registry import platform_registry
                 if platform_registry.is_registered(platform_name):
-                    plugin_tools = set(_HERMES_CORE_TOOLS)
+                    plugin_tools = set(_GPUCLOUD_CORE_TOOLS)
                     try:
                         from tools.registry import registry
                         plugin_tools.update(

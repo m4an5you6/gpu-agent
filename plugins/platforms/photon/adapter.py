@@ -1,5 +1,5 @@
 """
-Photon Spectrum (iMessage) platform adapter for Hermes Agent.
+Photon Spectrum (iMessage) platform adapter for GPUCLOUD Agent.
 
 Both directions of traffic flow through a small supervised Node sidecar
 (see ``sidecar/index.mjs``) that runs the ``spectrum-ts`` SDK — the SDK is
@@ -49,7 +49,7 @@ else:
     try:
         import httpx
         HTTPX_AVAILABLE = True
-    except ImportError:  # pragma: no cover - httpx is already a Hermes dep
+    except ImportError:  # pragma: no cover - httpx is already a GPUCLOUD dep
         HTTPX_AVAILABLE = False
         httpx = None
 
@@ -89,8 +89,8 @@ _SIDECAR_DIR = Path(__file__).parent / "sidecar"
 # behavior and defaults as the BlueBubbles iMessage channel so the two
 # iMessage adapters gate group chats identically.
 _DEFAULT_MENTION_PATTERNS = [
-    r"(?<![\w@])@?hermes\s+agent\b[,:\-]?",
-    r"(?<![\w@])@?hermes\b[,:\-]?",
+    r"(?<![\w@])@?gpucloud\s+agent\b[,:\-]?",
+    r"(?<![\w@])@?gpucloud\b[,:\-]?",
 ]
 
 
@@ -111,9 +111,9 @@ def check_requirements() -> bool:
     if not shutil.which(os.getenv("PHOTON_NODE_BIN") or "node"):
         return False
     if not (_SIDECAR_DIR / "node_modules").exists():
-        # spectrum-ts not installed yet — `hermes photon setup` will
+        # spectrum-ts not installed yet — `gpucloud photon setup` will
         # install it.  check_fn still returns False so the gateway
-        # surfaces the missing-deps state in `hermes setup` / status.
+        # surfaces the missing-deps state in `gpucloud setup` / status.
         return False
     return True
 
@@ -231,7 +231,7 @@ class PhotonAdapter(BasePlatformAdapter):
         """Compile group-mention wake words from config/env.
 
         ``raw`` is a list (config or env JSON), a string (env var: JSON
-        list, or comma/newline-separated), or None (use Hermes defaults).
+        list, or comma/newline-separated), or None (use GPUCLOUD defaults).
         Mirrors the BlueBubbles implementation so both iMessage channels
         accept the same configuration shapes.
         """
@@ -296,7 +296,7 @@ class PhotonAdapter(BasePlatformAdapter):
             self._set_fatal_error(
                 "MISSING_CREDENTIALS",
                 "PHOTON_PROJECT_ID and PHOTON_PROJECT_SECRET are required. "
-                "Run: hermes photon setup",
+                "Run: gpucloud photon setup",
                 retryable=False,
             )
             return False
@@ -369,7 +369,7 @@ class PhotonAdapter(BasePlatformAdapter):
         if client is None:
             return
         url = f"http://{self._sidecar_bind}:{self._sidecar_port}/inbound"
-        headers = {"X-Hermes-Sidecar-Token": self._sidecar_token}
+        headers = {"X-GPUCLOUD-Sidecar-Token": self._sidecar_token}
         backoff = 1.0
         while self._inbound_running:
             try:
@@ -552,7 +552,7 @@ class PhotonAdapter(BasePlatformAdapter):
         if not (_SIDECAR_DIR / "node_modules").exists():
             raise RuntimeError(
                 f"Photon sidecar deps not installed. Run: "
-                f"cd {_SIDECAR_DIR} && npm install   (or `hermes photon setup`)"
+                f"cd {_SIDECAR_DIR} && npm install   (or `gpucloud photon setup`)"
             )
         env = os.environ.copy()
         env["PHOTON_PROJECT_ID"] = self._project_id
@@ -588,7 +588,7 @@ class PhotonAdapter(BasePlatformAdapter):
                 try:
                     resp = await client.post(
                         f"http://{self._sidecar_bind}:{self._sidecar_port}/healthz",
-                        headers={"X-Hermes-Sidecar-Token": self._sidecar_token},
+                        headers={"X-GPUCLOUD-Sidecar-Token": self._sidecar_token},
                     )
                     if resp.status_code == 200:
                         return
@@ -624,7 +624,7 @@ class PhotonAdapter(BasePlatformAdapter):
                 try:
                     await self._http_client.post(
                         f"http://{self._sidecar_bind}:{self._sidecar_port}/shutdown",
-                        headers={"X-Hermes-Sidecar-Token": self._sidecar_token},
+                        headers={"X-GPUCLOUD-Sidecar-Token": self._sidecar_token},
                         timeout=2.0,
                     )
                 except Exception:
@@ -875,7 +875,7 @@ class PhotonAdapter(BasePlatformAdapter):
         to a plain audio attachment on platforms without voice notes),
         otherwise ``"attachment"``. spectrum-ts infers ``name`` and
         ``mimeType`` from the file extension; we only pass overrides when
-        Hermes supplied them.
+        GPUCLOUD supplied them.
         """
         # Defense-in-depth: re-validate the path before handing it to the
         # Node sidecar. The gateway already filters MEDIA paths, but
@@ -913,7 +913,7 @@ class PhotonAdapter(BasePlatformAdapter):
         resp = await self._http_client.post(
             f"http://{self._sidecar_bind}:{self._sidecar_port}{path}",
             json=body,
-            headers={"X-Hermes-Sidecar-Token": self._sidecar_token},
+            headers={"X-GPUCLOUD-Sidecar-Token": self._sidecar_token},
             timeout=30.0,
         )
         if resp.status_code != 200:
@@ -1051,7 +1051,7 @@ async def _standalone_send(
             )
         }
     base = f"http://{_DEFAULT_SIDECAR_BIND}:{port}"
-    headers = {"X-Hermes-Sidecar-Token": token}
+    headers = {"X-GPUCLOUD-Sidecar-Token": token}
     last_message_id: Optional[str] = None
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -1106,9 +1106,9 @@ async def _standalone_send(
 # Plugin entry point
 
 def register(ctx) -> None:
-    """Called by the Hermes plugin loader at startup."""
+    """Called by the GPUCLOUD plugin loader at startup."""
     # Local import to avoid argparse work at module load; reused for both the
-    # gateway-setup hook and the `hermes photon` CLI command below.
+    # gateway-setup hook and the `gpucloud photon` CLI command below.
     from . import cli as _cli
 
     ctx.register_platform(
@@ -1120,11 +1120,11 @@ def register(ctx) -> None:
         is_connected=is_connected,
         required_env=["PHOTON_PROJECT_ID", "PHOTON_PROJECT_SECRET"],
         install_hint=(
-            "Run: hermes photon setup  (logs in via device flow, creates a "
+            "Run: gpucloud photon setup  (logs in via device flow, creates a "
             "Spectrum project, links your phone number, installs the "
             "spectrum-ts sidecar)."
         ),
-        # Surfaces Photon in `hermes gateway setup` alongside every other
+        # Surfaces Photon in `gpucloud gateway setup` alongside every other
         # channel — same unified onboarding wizard, no Photon-only detour.
         setup_fn=_cli.gateway_setup,
         env_enablement_fn=_env_enablement,
@@ -1148,7 +1148,7 @@ def register(ctx) -> None:
         ),
     )
 
-    # Register CLI subcommands — `hermes photon ...`
+    # Register CLI subcommands — `gpucloud photon ...`
     ctx.register_cli_command(
         name="photon",
         help="Set up and manage the Photon iMessage integration",

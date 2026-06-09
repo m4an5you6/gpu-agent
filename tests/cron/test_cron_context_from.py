@@ -11,20 +11,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 @pytest.fixture
 def cron_env(tmp_path, monkeypatch):
-    """Isolated cron environment with temp HERMES_HOME."""
-    hermes_home = tmp_path / ".hermes"
-    hermes_home.mkdir()
-    (hermes_home / "cron").mkdir()
-    (hermes_home / "cron" / "output").mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    """Isolated cron environment with temp GPUCLOUD_HOME."""
+    gpucloud_home = tmp_path / ".gpucloud"
+    gpucloud_home.mkdir()
+    (gpucloud_home / "cron").mkdir()
+    (gpucloud_home / "cron" / "output").mkdir()
+    monkeypatch.setenv("GPUCLOUD_HOME", str(gpucloud_home))
 
     import cron.jobs as jobs_mod
-    monkeypatch.setattr(jobs_mod, "HERMES_DIR", hermes_home)
-    monkeypatch.setattr(jobs_mod, "CRON_DIR", hermes_home / "cron")
-    monkeypatch.setattr(jobs_mod, "JOBS_FILE", hermes_home / "cron" / "jobs.json")
-    monkeypatch.setattr(jobs_mod, "OUTPUT_DIR", hermes_home / "cron" / "output")
+    monkeypatch.setattr(jobs_mod, "GPUCLOUD_DIR", gpucloud_home)
+    monkeypatch.setattr(jobs_mod, "CRON_DIR", gpucloud_home / "cron")
+    monkeypatch.setattr(jobs_mod, "JOBS_FILE", gpucloud_home / "cron" / "jobs.json")
+    monkeypatch.setattr(jobs_mod, "OUTPUT_DIR", gpucloud_home / "cron" / "output")
 
-    return hermes_home
+    return gpucloud_home
 
 
 class TestJobContextFromField:

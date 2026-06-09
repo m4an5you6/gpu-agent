@@ -2,7 +2,7 @@ import { useStore } from '@nanostores/react'
 import type * as React from 'react'
 
 import { ModelPickerDialog } from '@/components/model-picker'
-import type { HermesGateway } from '@/hermes'
+import type { GPUCLOUDGateway } from '@/gpucloud'
 import {
   $activeSessionId,
   $currentModel,
@@ -13,7 +13,7 @@ import {
 } from '@/store/session'
 
 interface ModelPickerOverlayProps {
-  gateway?: HermesGateway
+  gateway?: GPUCLOUDGateway
   onSelect: React.ComponentProps<typeof ModelPickerDialog>['onSelect']
 }
 

@@ -3,7 +3,7 @@
 // nudges chalk / supports-color before either package is initialized.
 import './lib/forceTruecolor.js'
 
-import type { FrameEvent } from '@hermes/ink'
+import type { FrameEvent } from '@gpucloud/ink'
 
 import { TERMUX_TUI_MODE } from './config/env.js'
 import { GatewayClient } from './gatewayClient.js'
@@ -15,7 +15,7 @@ import { recordParentLifecycle } from './lib/parentLog.js'
 import { resetTerminalModes } from './lib/terminalModes.js'
 
 if (!process.stdin.isTTY) {
-  console.log('hermes-tui: no TTY')
+  console.log('gpucloud-tui: no TTY')
   process.exit(0)
 }
 
@@ -53,7 +53,7 @@ const gw = new GatewayClient()
 gw.start()
 
 const dumpNotice = (snap: MemorySnapshot, dump: HeapDumpResult | null) =>
-  `hermes-tui: ${snap.level} memory (${formatBytes(snap.heapUsed)}) — auto heap dump → ${dump?.heapPath ?? dump?.diagPath ?? '(failed)'}\n`
+  `gpucloud-tui: ${snap.level} memory (${formatBytes(snap.heapUsed)}) — auto heap dump → ${dump?.heapPath ?? dump?.diagPath ?? '(failed)'}\n`
 
 setupGracefulExit({
   cleanups: [
@@ -67,7 +67,7 @@ setupGracefulExit({
     const message = err instanceof Error ? `${err.name}: ${err.message}\n${err.stack ?? ''}` : String(err)
 
     recordParentLifecycle(`${scope}: ${message.split('\n')[0]?.slice(0, 400) ?? ''}`)
-    process.stderr.write(`hermes-tui lifecycle ${scope}: ${message.slice(0, 2000)}\n`)
+    process.stderr.write(`gpucloud-tui lifecycle ${scope}: ${message.slice(0, 2000)}\n`)
   },
   onSignal: signal => {
     // The next line in the crash log is the child's `=== SIGTERM received ===`
@@ -75,7 +75,7 @@ setupGracefulExit({
     // what tells SIGHUP (terminal/SSH dropped) apart from a real SIGTERM.
     recordParentLifecycle(`graceful-exit received signal=${signal} → killing gateway`)
     resetTerminalModes()
-    process.stderr.write(`hermes-tui lifecycle: received ${signal}\n`)
+    process.stderr.write(`gpucloud-tui lifecycle: received ${signal}\n`)
   }
 })
 
@@ -86,9 +86,9 @@ const stopMemoryMonitor = startMemoryMonitor({
     // attribute a death to Node OOM rather than a signal-driven kill.
     recordParentLifecycle(`memory-critical process.exit(137) heap=${formatBytes(snap.heapUsed)} rss=${formatBytes(snap.rss)} dump=${dump?.heapPath ?? 'failed'}`)
     resetTerminalModes()
-    process.stderr.write(`hermes-tui lifecycle: memory critical exit heap=${formatBytes(snap.heapUsed)} rss=${formatBytes(snap.rss)}\n`)
+    process.stderr.write(`gpucloud-tui lifecycle: memory critical exit heap=${formatBytes(snap.heapUsed)} rss=${formatBytes(snap.rss)}\n`)
     process.stderr.write(dumpNotice(snap, dump))
-    process.stderr.write('hermes-tui: exiting to avoid OOM; restart to recover\n')
+    process.stderr.write('gpucloud-tui: exiting to avoid OOM; restart to recover\n')
     process.exit(137)
   },
   onHigh: (snap, dump) => process.stderr.write(dumpNotice(snap, dump)),
@@ -99,19 +99,19 @@ const stopMemoryMonitor = startMemoryMonitor({
   onWarn: snap => {
     recordParentLifecycle(`memory-warning fast heap growth heap=${formatBytes(snap.heapUsed)} rss=${formatBytes(snap.rss)}`)
     process.stderr.write(
-      `hermes-tui: heap climbing fast (${formatBytes(snap.heapUsed)}) — a large tool output or long session may be straining memory\n`
+      `gpucloud-tui: heap climbing fast (${formatBytes(snap.heapUsed)}) — a large tool output or long session may be straining memory\n`
     )
   }
 })
 
-if (process.env.HERMES_HEAPDUMP_ON_START === '1') {
+if (process.env.GPUCLOUD_HEAPDUMP_ON_START === '1') {
   void performHeapDump('manual')
 }
 
 process.on('beforeExit', () => stopMemoryMonitor())
 
 const [ink, { App }, { logFrameEvent }, { trackFrame }] = await Promise.all([
-  import('@hermes/ink'),
+  import('@gpucloud/ink'),
   import('./app.js'),
   import('./lib/perfPane.js'),
   import('./lib/fpsStore.js')

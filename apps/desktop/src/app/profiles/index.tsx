@@ -22,7 +22,7 @@ import {
   type ProfileInfo,
   renameProfile,
   updateProfileSoul
-} from '@/hermes'
+} from '@/gpucloud'
 import { useI18n } from '@/i18n'
 import { AlertTriangle, Pencil, Save, Terminal, Trash2, Users } from '@/lib/icons'
 import { cn } from '@/lib/utils'

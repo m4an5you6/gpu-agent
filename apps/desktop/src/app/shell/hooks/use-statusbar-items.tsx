@@ -49,7 +49,7 @@ import {
   $updateStatus,
   openUpdateOverlayFor
 } from '@/store/updates'
-import type { StatusResponse } from '@/types/hermes'
+import type { StatusResponse } from '@/types/gpucloud'
 
 import { CRON_ROUTE } from '../../routes'
 import type { StatusbarItem, StatusbarSelectModifiers } from '../statusbar-controls'
