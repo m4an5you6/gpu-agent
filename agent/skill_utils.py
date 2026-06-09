@@ -444,7 +444,7 @@ def extract_skill_conditions(frontmatter: Dict[str, Any]) -> Dict[str, List]:
     # Handle cases where metadata is not a dict (e.g., a string from malformed YAML)
     if not isinstance(metadata, dict):
         metadata = {}
-    gpucloud = metadata.get("gpucloud") or {}
+    gpucloud = metadata.get("gpucloud") or metadata.get("hermes") or {}
     if not isinstance(gpucloud, dict):
         gpucloud = {}
     return {
@@ -471,13 +471,16 @@ def extract_skill_config_vars(frontmatter: Dict[str, Any]) -> List[Dict[str, Any
                 default: "~/wiki"
                 prompt: Wiki directory path
 
+    Legacy ``metadata.hermes`` declarations are still accepted during the
+    GPUCLOUD rename.
+
     Returns a list of dicts with keys: ``key``, ``description``, ``default``,
     ``prompt``.  Invalid or incomplete entries are silently skipped.
     """
     metadata = frontmatter.get("metadata")
     if not isinstance(metadata, dict):
         return []
-    gpucloud = metadata.get("gpucloud")
+    gpucloud = metadata.get("gpucloud") or metadata.get("hermes")
     if not isinstance(gpucloud, dict):
         return []
     raw = gpucloud.get("config")
