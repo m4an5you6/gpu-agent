@@ -1,7 +1,7 @@
 """Tests for /resume status lines going to stderr in quiet mode (#11793).
 
 The fix in cli._init_agent routes three messages to stderr when
-``tool_progress_mode == "off"`` (set by ``hermes chat --quiet``):
+``tool_progress_mode == "off"`` (set by ``gpucloud chat --quiet``):
 
   * "Session not found: ..."
   * "↻ Resumed session ... (N user messages, M total messages)"
@@ -15,14 +15,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cli import HermesCLI
+from cli import GPUCloudCLI
 
 
 def _make_cli(quiet=False, session_id="20260524_111111_xyz", db=None):
-    """Build a minimal HermesCLI bound to only what _init_agent needs for
+    """Build a minimal GPUCloudCLI bound to only what _init_agent needs for
     the resume code path: _resumed, _session_db, conversation_history,
     session_id, and tool_progress_mode."""
-    cli = HermesCLI.__new__(HermesCLI)
+    cli = GPUCloudCLI.__new__(GPUCloudCLI)
     cli.session_id = session_id
     cli._resumed = True
     cli.conversation_history = []
@@ -57,7 +57,7 @@ class TestResumeQuietStderr:
         assert "Session not found" not in captured.out
         # the resume status goes to stderr
         assert "Session not found" in captured.err
-        assert "hermes sessions list" in captured.err
+        assert "gpucloud sessions list" in captured.err
 
     def test_session_not_found_goes_to_stdout_in_full_mode(self, capsys):
         db = MagicMock()

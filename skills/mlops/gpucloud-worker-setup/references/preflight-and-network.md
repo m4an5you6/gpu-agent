@@ -1,11 +1,11 @@
 # GPUCLOUD Preflight Check Source Reference
 
 ## Source File
-`/usr/local/lib/hermes-agent/hermes_cli/gpucloud_worker.py` — `run_worker_preflight()` (line 220-350)
+`/usr/local/lib/gpucloud-agent/gpucloud_cli/gpucloud_worker.py` — `run_worker_preflight()` (line 220-350)
 
 ## Workflow State Machine
 
-Source: `/usr/local/lib/hermes-agent/hermes_cli/gpucloud_worker_goal.py`
+Source: `/usr/local/lib/gpucloud-agent/gpucloud_cli/gpucloud_worker_goal.py`
 
 ```
 preflight → train_dry_run → training_running → training_completed
@@ -41,8 +41,8 @@ Runs: `<python> -c "import json, torch; print(json.dumps({...}))"`
 Checks: torch_version, cuda_version, cuda_available, distributed_available, nccl_available
 
 ### State Persistence
-- Worker goal state: `~/.hermes/gpucloud/worker_goal_runs/<job_id>.json`
-- Worker job state: `~/.hermes/gpucloud/worker_jobs/<job_id>.json`
+- Worker goal state: `~/.gpucloud/gpucloud/worker_goal_runs/<job_id>.json`
+- Worker job state: `~/.gpucloud/gpucloud/worker_jobs/<job_id>.json`
 - Delete to reset a stuck workflow.
 
 ## 算力自由 (Suànlì Zìyóu) Instance Details

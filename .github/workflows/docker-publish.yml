@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  IMAGE_NAME: nousresearch/hermes-agent
+  IMAGE_NAME: nousresearch/gpucloud-agent
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -25,7 +25,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-amd64:
     # Only run on the upstream repository, not on forks
-    if: github.repository == 'NousResearch/hermes-agent'
+    if: github.repository == 'NousResearch/gpucloud-agent'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     outputs:
@@ -51,12 +51,12 @@ jobs:
           platforms: linux/amd64
           tags: ${{ env.IMAGE_NAME }}:test
           build-args: |
-            HERMES_GIT_SHA=${{ github.sha }}
+            GPUCLOUD_GIT_SHA=${{ github.sha }}
           cache-from: type=gha,scope=docker-amd64
           cache-to: type=gha,mode=max,scope=docker-amd64
 
       - name: Smoke test image
-        uses: ./.github/actions/hermes-smoke-test
+        uses: ./.github/actions/gpucloud-smoke-test
         with:
           image: ${{ env.IMAGE_NAME }}:test
 
@@ -72,8 +72,8 @@ jobs:
       #
       # Piggybacking here avoids a second image build: the smoke test
       # already proved the image loads + runs, so the daemon has it under
-      # `${IMAGE_NAME}:test` and we just point ``HERMES_TEST_IMAGE`` at
-      # that.  The fixture's ``HERMES_TEST_IMAGE`` branch (see
+      # `${IMAGE_NAME}:test` and we just point ``GPUCLOUD_TEST_IMAGE`` at
+      # that.  The fixture's ``GPUCLOUD_TEST_IMAGE`` branch (see
       # tests/docker/conftest.py:62-63) short-circuits the rebuild.
       #
       # Why this job and not a standalone one: the image is 5GB+; passing
@@ -100,7 +100,7 @@ jobs:
       - name: Run docker integration tests
         env:
           # Skip rebuild; use the image already loaded by the build step.
-          HERMES_TEST_IMAGE: ${{ env.IMAGE_NAME }}:test
+          GPUCLOUD_TEST_IMAGE: ${{ env.IMAGE_NAME }}:test
           # Match the policy in tests.yml :: test job — no accidental
           # real-API calls from inside the harness.
           OPENROUTER_API_KEY: ""
@@ -131,7 +131,7 @@ jobs:
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
           build-args: |
-            HERMES_GIT_SHA=${{ github.sha }}
+            GPUCLOUD_GIT_SHA=${{ github.sha }}
           outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=docker-amd64
           cache-to: type=gha,mode=max,scope=docker-amd64
@@ -161,7 +161,7 @@ jobs:
   # smoke test, then on push/release push by digest.
   # ---------------------------------------------------------------------------
   build-arm64:
-    if: github.repository == 'NousResearch/hermes-agent'
+    if: github.repository == 'NousResearch/gpucloud-agent'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 45
     outputs:
@@ -189,7 +189,7 @@ jobs:
           platforms: linux/arm64
           tags: ${{ env.IMAGE_NAME }}:test
           build-args: |
-            HERMES_GIT_SHA=${{ github.sha }}
+            GPUCLOUD_GIT_SHA=${{ github.sha }}
 
       # Main/release builds still use the per-arch gha cache so the digest
       # push below can reuse layers from this smoke-test build.
@@ -203,12 +203,12 @@ jobs:
           platforms: linux/arm64
           tags: ${{ env.IMAGE_NAME }}:test
           build-args: |
-            HERMES_GIT_SHA=${{ github.sha }}
+            GPUCLOUD_GIT_SHA=${{ github.sha }}
           cache-from: type=gha,scope=docker-arm64
           cache-to: type=gha,mode=max,scope=docker-arm64
 
       - name: Smoke test image
-        uses: ./.github/actions/hermes-smoke-test
+        uses: ./.github/actions/gpucloud-smoke-test
         with:
           image: ${{ env.IMAGE_NAME }}:test
 
@@ -230,7 +230,7 @@ jobs:
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
           build-args: |
-            HERMES_GIT_SHA=${{ github.sha }}
+            GPUCLOUD_GIT_SHA=${{ github.sha }}
           outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=docker-arm64
           cache-to: type=gha,mode=max,scope=docker-arm64
@@ -260,7 +260,7 @@ jobs:
   # On releases: tags :<release_tag_name>.
   # ---------------------------------------------------------------------------
   merge:
-    if: github.repository == 'NousResearch/hermes-agent' && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'release')
+    if: github.repository == 'NousResearch/gpucloud-agent' && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'release')
     runs-on: ubuntu-latest
     needs: [build-amd64, build-arm64]
     timeout-minutes: 10

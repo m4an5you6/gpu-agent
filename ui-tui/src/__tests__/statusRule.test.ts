@@ -5,7 +5,7 @@ import { statusRuleWidths } from '../components/appChrome.js'
 describe('statusRuleWidths', () => {
   it('keeps the status rule within the terminal width', () => {
     for (const cols of [8, 12, 20, 40, 100]) {
-      const widths = statusRuleWidths(cols, '~/src/hermes-agent/main (some-long-branch-name)')
+      const widths = statusRuleWidths(cols, '~/src/gpucloud-agent/main (some-long-branch-name)')
 
       expect(widths.leftWidth + widths.separatorWidth + widths.rightWidth).toBeLessThanOrEqual(cols)
       expect(widths.leftWidth).toBeGreaterThan(0)
@@ -13,9 +13,9 @@ describe('statusRuleWidths', () => {
   })
 
   it('truncates the cwd segment before it can wrap in skinny terminals', () => {
-    const widths = statusRuleWidths(24, '~/src/hermes-agent/main (bb/some-extremely-long-branch)')
+    const widths = statusRuleWidths(24, '~/src/gpucloud-agent/main (bb/some-extremely-long-branch)')
 
-    expect(widths.rightWidth).toBeLessThan('~/src/hermes-agent/main (bb/some-extremely-long-branch)'.length)
+    expect(widths.rightWidth).toBeLessThan('~/src/gpucloud-agent/main (bb/some-extremely-long-branch)'.length)
     expect(widths.leftWidth).toBeGreaterThanOrEqual(8)
   })
 

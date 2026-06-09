@@ -1,10 +1,10 @@
-# nix/packages.nix — Hermes Agent package built with uv2nix
+# nix/packages.nix — GPUCLOUD Agent package built with uv2nix
 { inputs, ... }:
 {
   perSystem =
     { pkgs, lib, inputs', ... }:
     let
-      hermesAgent = pkgs.callPackage ./hermes-agent.nix {
+      hermesAgent = pkgs.callPackage ./gpucloud-agent.nix {
         inherit (inputs) uv2nix pyproject-nix pyproject-build-systems;
         npm-lockfile-fix = inputs'.npm-lockfile-fix.packages.default;
         # Only embed clean revs — dirtyRev doesn't represent any upstream
@@ -48,11 +48,11 @@
           ] ++ lib.optionals pkgs.stdenv.isLinux [ "matrix" ];
         };
 
-        tui = hermesAgent.hermesTui;
-        web = hermesAgent.hermesWeb;
+        tui = hermesAgent.gpucloudTui;
+        web = hermesAgent.gpucloudWeb;
 
-        fix-lockfiles = hermesAgent.hermesNpmLib.mkFixLockfiles {
-          packages = [ hermesAgent.hermesTui hermesAgent.hermesWeb ];
+        fix-lockfiles = hermesAgent.gpucloudNpmLib.mkFixLockfiles {
+          packages = [ hermesAgent.gpucloudTui hermesAgent.gpucloudWeb ];
         };
       };
     };

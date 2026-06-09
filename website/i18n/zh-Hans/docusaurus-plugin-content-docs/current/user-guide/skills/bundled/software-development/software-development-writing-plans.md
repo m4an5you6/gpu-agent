@@ -17,7 +17,7 @@ description: "编写实施计划：细粒度任务、路径、代码"
 | 来源 | 内置（默认安装） |
 | 路径 | `skills/software-development/writing-plans` |
 | 版本 | `1.1.0` |
-| 作者 | Hermes Agent（改编自 obra/superpowers） |
+| 作者 | GPUCLOUD Agent（改编自 obra/superpowers） |
 | 许可证 | MIT |
 | 平台 | linux, macos, windows |
 | 标签 | `planning`, `design`, `implementation`, `workflow`, `documentation` |
@@ -26,7 +26,7 @@ description: "编写实施计划：细粒度任务、路径、代码"
 ## 参考：完整 SKILL.md
 
 :::info
-以下是 Hermes 在触发该 skill 时加载的完整 skill 定义。这是 agent 在 skill 激活时所看到的指令内容。
+以下是 GPUCLOUD 在触发该 skill 时加载的完整 skill 定义。这是 agent 在 skill 激活时所看到的指令内容。
 :::
 
 # 编写实施计划
@@ -89,7 +89,7 @@ description: "编写实施计划：细粒度任务、路径、代码"
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
+> **For GPUCLOUD:** Use subagent-driven-development skill to implement this plan task-by-task.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -159,7 +159,7 @@ git commit -m "feat: add specific feature"
 
 ### 第二步：探索代码库
 
-使用 Hermes 工具了解项目：
+使用 GPUCLOUD 工具了解项目：
 
 ```python
 # Understand project structure

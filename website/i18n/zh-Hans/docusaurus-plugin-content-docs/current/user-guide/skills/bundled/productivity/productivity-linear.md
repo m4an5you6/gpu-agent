@@ -17,7 +17,7 @@ Linear：通过 GraphQL + curl 管理 issues、项目和团队。
 | 来源 | 内置（默认安装） |
 | 路径 | `skills/productivity/linear` |
 | 版本 | `1.0.0` |
-| 作者 | Hermes Agent |
+| 作者 | GPUCLOUD Agent |
 | 许可证 | MIT |
 | 平台 | linux, macos, windows |
 | 标签 | `Linear`, `Project Management`, `Issues`, `GraphQL`, `API`, `Productivity` |
@@ -25,7 +25,7 @@ Linear：通过 GraphQL + curl 管理 issues、项目和团队。
 ## 参考：完整 SKILL.md
 
 :::info
-以下是 Hermes 在触发此 skill 时加载的完整 skill 定义。这是 agent 在 skill 激活时所看到的指令内容。
+以下是 GPUCLOUD 在触发此 skill 时加载的完整 skill 定义。这是 agent 在 skill 激活时所看到的指令内容。
 :::
 
 # Linear — Issue 与项目管理
@@ -35,7 +35,7 @@ Linear：通过 GraphQL + curl 管理 issues、项目和团队。
 ## 配置
 
 1. 从 **Linear 设置 > Account > Security & access > Personal API keys** 获取个人 API key（URL：https://linear.app/settings/account/security）。注意：组织级别的 *Settings > API* 页面仅显示 OAuth 应用和工作区成员 key，不显示个人 key。
-2. 在环境中设置 `LINEAR_API_KEY`（通过 `hermes setup` 或你的环境配置）
+2. 在环境中设置 `LINEAR_API_KEY`（通过 `gpucloud setup` 或你的环境配置）
 
 ## API 基础
 
@@ -57,7 +57,7 @@ curl -s -X POST https://api.linear.app/graphql \
 如需无需手写 GraphQL 的快速单行命令，此 skill 提供了一个基于标准库的 Python CLI，路径为 `scripts/linear_api.py`。零依赖，使用相同的认证方式（读取 `LINEAR_API_KEY`）。
 
 ```bash
-SCRIPT=$(dirname "$(find ~/.hermes -path '*skills/productivity/linear/scripts/linear_api.py' 2>/dev/null | head -1)")/linear_api.py
+SCRIPT=$(dirname "$(find ~/.gpucloud -path '*skills/productivity/linear/scripts/linear_api.py' 2>/dev/null | head -1)")/linear_api.py
 
 python3 "$SCRIPT" whoami
 python3 "$SCRIPT" list-teams

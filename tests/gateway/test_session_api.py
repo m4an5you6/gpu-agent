@@ -9,7 +9,7 @@ from aiohttp.test_utils import TestClient, TestServer
 
 from gateway.config import PlatformConfig
 from gateway.platforms.api_server import APIServerAdapter
-from hermes_state import SessionDB
+from gpucloud_state import SessionDB
 
 
 @pytest.fixture
@@ -158,13 +158,13 @@ async def test_session_chat_loads_history_and_preserves_session_headers(auth_ada
             resp = await cli.post(
                 f"/api/sessions/{session_id}/chat",
                 json={"message": "next", "system_message": "stay focused"},
-                headers={"Authorization": "Bearer sk-test", "X-Hermes-Session-Key": "client-42"},
+                headers={"Authorization": "Bearer sk-test", "X-GPUCLOUD-Session-Key": "client-42"},
             )
             assert resp.status == 200
             payload = await resp.json()
 
-    assert resp.headers["X-Hermes-Session-Id"] == session_id
-    assert resp.headers["X-Hermes-Session-Key"] == "client-42"
+    assert resp.headers["X-GPUCLOUD-Session-Id"] == session_id
+    assert resp.headers["X-GPUCLOUD-Session-Key"] == "client-42"
     assert payload["object"] == "hermes.session.chat.completion"
     assert payload["session_id"] == session_id
     assert payload["message"]["role"] == "assistant"
@@ -293,8 +293,8 @@ async def test_session_header_rejected_without_api_key(adapter, session_db):
         resp = await cli.post(
             f"/api/sessions/{session_id}/chat",
             json={"message": "hello"},
-            headers={"X-Hermes-Session-Key": "client-42"},
+            headers={"X-GPUCLOUD-Session-Key": "client-42"},
         )
         assert resp.status == 403
         data = await resp.json()
-        assert "X-Hermes-Session-Key requires API key" in data["error"]["message"]
+        assert "X-GPUCLOUD-Session-Key requires API key" in data["error"]["message"]

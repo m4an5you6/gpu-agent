@@ -178,8 +178,8 @@ class WeComAdapter(BasePlatformAdapter):
 
         # Text batching: merge rapid successive messages (Telegram-style).
         # WeCom clients split long messages around 4000 chars.
-        self._text_batch_delay_seconds = float(os.getenv("HERMES_WECOM_TEXT_BATCH_DELAY_SECONDS", "0.6"))
-        self._text_batch_split_delay_seconds = float(os.getenv("HERMES_WECOM_TEXT_BATCH_SPLIT_DELAY_SECONDS", "2.0"))
+        self._text_batch_delay_seconds = float(os.getenv("GPUCLOUD_WECOM_TEXT_BATCH_DELAY_SECONDS", "0.6"))
+        self._text_batch_split_delay_seconds = float(os.getenv("GPUCLOUD_WECOM_TEXT_BATCH_SPLIT_DELAY_SECONDS", "2.0"))
         self._pending_text_batches: Dict[str, MessageEvent] = {}
         self._pending_text_batch_tasks: Dict[str, asyncio.Task] = {}
         self._device_id = uuid.uuid4().hex
@@ -1071,7 +1071,7 @@ class WeComAdapter(BasePlatformAdapter):
                 "GET",
                 url,
                 headers={
-                    "User-Agent": "HermesAgent/1.0",
+                    "User-Agent": "GPUCLOUDAgent/1.0",
                     "Accept": "*/*",
                 },
             ) as response:
@@ -1532,7 +1532,7 @@ def qr_scan_for_bot_info(
     # ── Step 1: Fetch QR code ──
     print("  Connecting to WeCom...", end="", flush=True)
     try:
-        req = urllib.request.Request(generate_url, headers={"User-Agent": "HermesAgent/1.0"})
+        req = urllib.request.Request(generate_url, headers={"User-Agent": "GPUCLOUDAgent/1.0"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             raw = json.loads(resp.read().decode("utf-8"))
     except Exception as exc:
@@ -1582,7 +1582,7 @@ def qr_scan_for_bot_info(
 
     while time.monotonic() < deadline:
         try:
-            req = urllib.request.Request(query_url, headers={"User-Agent": "HermesAgent/1.0"})
+            req = urllib.request.Request(query_url, headers={"User-Agent": "GPUCLOUDAgent/1.0"})
             with urllib.request.urlopen(req, timeout=10) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
         except Exception as exc:

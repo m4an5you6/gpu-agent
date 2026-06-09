@@ -33,8 +33,8 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse, parse_qs, urlunparse
 
-from hermes_cli.timeouts import get_provider_request_timeout, get_provider_stale_timeout
-from hermes_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
+from gpucloud_cli.timeouts import get_provider_request_timeout, get_provider_stale_timeout
+from gpucloud_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
 from agent.error_classifier import classify_api_error, FailoverReason
 from agent.model_metadata import is_local_endpoint
 from agent.message_sanitization import (
@@ -288,8 +288,8 @@ def interruptible_api_call(agent, api_kwargs: dict):
     # failure mode emits an opening SSE frame and then stalls forever in SSL
     # read; for that we watch the gap since the last Codex stream event. This
     # matches Codex CLI's stream_idle_timeout model: any valid SSE event is
-    # activity. Operators can tune via HERMES_CODEX_TTFB_TIMEOUT_SECONDS and
-    # HERMES_CODEX_EVENT_STALE_TIMEOUT_SECONDS (0 disables each).
+    # activity. Operators can tune via GPUCLOUD_CODEX_TTFB_TIMEOUT_SECONDS and
+    # GPUCLOUD_CODEX_EVENT_STALE_TIMEOUT_SECONDS (0 disables each).
     _codex_watchdog_enabled = agent.api_mode == "codex_responses"
     _openai_codex_backend = _is_openai_codex_backend(agent)
     _est_tokens_for_codex_watchdog = estimate_request_context_tokens(api_kwargs)
@@ -311,12 +311,12 @@ def interruptible_api_call(agent, api_kwargs: dict):
         _codex_idle_timeout_default = 12.0
 
     _ttfb_enabled = _codex_watchdog_enabled
-    _ttfb_timeout = _env_float("HERMES_CODEX_TTFB_TIMEOUT_SECONDS", 12.0)
+    _ttfb_timeout = _env_float("GPUCLOUD_CODEX_TTFB_TIMEOUT_SECONDS", 12.0)
     if _ttfb_timeout <= 0:
         _ttfb_enabled = False
     elif _openai_codex_backend:
-        _ttfb_disable_above = _env_float("HERMES_CODEX_TTFB_DISABLE_ABOVE_TOKENS", 25_000.0)
-        _ttfb_strict = os.environ.get("HERMES_CODEX_TTFB_STRICT", "").strip().lower() in {
+        _ttfb_disable_above = _env_float("GPUCLOUD_CODEX_TTFB_DISABLE_ABOVE_TOKENS", 25_000.0)
+        _ttfb_strict = os.environ.get("GPUCLOUD_CODEX_TTFB_STRICT", "").strip().lower() in {
             "1", "true", "yes", "on"
         }
         if (
@@ -328,16 +328,16 @@ def interruptible_api_call(agent, api_kwargs: dict):
             logger.info(
                 "Disabling openai-codex no-byte TTFB watchdog for large request "
                 "(context=~%s tokens >= %.0f). Waiting for backend response instead. "
-                "Set HERMES_CODEX_TTFB_STRICT=1 to force early reconnects.",
+                "Set GPUCLOUD_CODEX_TTFB_STRICT=1 to force early reconnects.",
                 f"{_est_tokens_for_codex_watchdog:,}",
                 _ttfb_disable_above,
             )
         else:
-            _ttfb_cap = _env_float("HERMES_CODEX_TTFB_MAX_SECONDS", 20.0)
+            _ttfb_cap = _env_float("GPUCLOUD_CODEX_TTFB_MAX_SECONDS", 20.0)
             if _ttfb_cap > 0 and _ttfb_timeout > _ttfb_cap:
                 logger.info(
                     "Capping openai-codex no-byte TTFB timeout from %.0fs to %.0fs "
-                    "(context=~%s tokens). Set HERMES_CODEX_TTFB_MAX_SECONDS to tune.",
+                    "(context=~%s tokens). Set GPUCLOUD_CODEX_TTFB_MAX_SECONDS to tune.",
                     _ttfb_timeout,
                     _ttfb_cap,
                     f"{_est_tokens_for_codex_watchdog:,}",
@@ -346,7 +346,7 @@ def interruptible_api_call(agent, api_kwargs: dict):
 
     _codex_idle_enabled = _codex_watchdog_enabled
     _codex_idle_timeout = _env_float(
-        "HERMES_CODEX_EVENT_STALE_TIMEOUT_SECONDS",
+        "GPUCLOUD_CODEX_EVENT_STALE_TIMEOUT_SECONDS",
         _codex_idle_timeout_default,
     )
     if _codex_idle_timeout <= 0:
@@ -705,7 +705,7 @@ def build_api_kwargs(agent, api_messages: list) -> dict:
     _qwen_meta = None
     if _is_qwen:
         _qwen_meta = {
-            "sessionId": agent.session_id or "hermes",
+            "sessionId": agent.session_id or "gpucloud",
             "promptId": str(uuid.uuid4()),
         }
 
@@ -863,7 +863,7 @@ def build_assistant_message(agent, assistant_message, finish_reason: str) -> dic
     # If the model accidentally inlines a secret in its natural-language
     # response, catch it here at the persistence boundary so it never
     # reaches state.db, session_*.json, gateway delivery, or compression.
-    # Respects HERMES_REDACT_SECRETS via redact_sensitive_text — no-op
+    # Respects GPUCLOUD_REDACT_SECRETS via redact_sensitive_text — no-op
     # when disabled. (#19798)
     if isinstance(_san_content, str) and _san_content:
         from agent.redact import redact_sensitive_text
@@ -1086,7 +1086,7 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
         fb_api_key_hint = (fb.get("api_key") or "").strip() or None
         if not fb_api_key_hint:
             # key_env and api_key_env are both documented aliases (see
-            # _normalize_custom_provider_entry in hermes_cli/config.py).
+            # _normalize_custom_provider_entry in gpucloud_cli/config.py).
             fb_key_env = (fb.get("key_env") or fb.get("api_key_env") or "").strip()
             if fb_key_env:
                 fb_api_key_hint = os.getenv(fb_key_env, "").strip() or None
@@ -1105,7 +1105,7 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
                 fb_provider)
             return agent._try_activate_fallback()  # try next in chain
         try:
-            from hermes_cli.model_normalize import normalize_model_for_provider
+            from gpucloud_cli.model_normalize import normalize_model_for_provider
 
             fb_model = normalize_model_for_provider(fb_model, fb_provider)
         except Exception as _norm_err:
@@ -1685,23 +1685,23 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
         """Stream a chat completions response."""
         import httpx as _httpx
         # Per-provider / per-model request_timeout_seconds (from config.yaml)
-        # wins over the HERMES_API_TIMEOUT env default if the user set it.
+        # wins over the GPUCLOUD_API_TIMEOUT env default if the user set it.
         _provider_timeout_cfg = get_provider_request_timeout(agent.provider, agent.model)
         _base_timeout = (
             _provider_timeout_cfg
             if _provider_timeout_cfg is not None
-            else float(os.getenv("HERMES_API_TIMEOUT", 1800.0))
+            else float(os.getenv("GPUCLOUD_API_TIMEOUT", 1800.0))
         )
         # Read timeout: config wins here too.  Otherwise use
-        # HERMES_STREAM_READ_TIMEOUT (default 120s) for cloud providers.
+        # GPUCLOUD_STREAM_READ_TIMEOUT (default 120s) for cloud providers.
         if _provider_timeout_cfg is not None:
             _stream_read_timeout = _provider_timeout_cfg
         else:
-            _stream_read_timeout = float(os.getenv("HERMES_STREAM_READ_TIMEOUT", 120.0))
+            _stream_read_timeout = float(os.getenv("GPUCLOUD_STREAM_READ_TIMEOUT", 120.0))
             # Local providers (Ollama, llama.cpp, vLLM) can take minutes for
             # prefill on large contexts before producing the first token.
             # Auto-increase the httpx read timeout unless the user explicitly
-            # overrode HERMES_STREAM_READ_TIMEOUT.
+            # overrode GPUCLOUD_STREAM_READ_TIMEOUT.
             if _stream_read_timeout == 120.0 and agent.base_url and is_local_endpoint(agent.base_url):
                 _stream_read_timeout = _base_timeout
                 logger.debug(
@@ -2053,7 +2053,7 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
     def _call():
         import httpx as _httpx
 
-        _max_stream_retries = int(os.getenv("HERMES_STREAM_RETRIES", 2))
+        _max_stream_retries = int(os.getenv("GPUCLOUD_STREAM_RETRIES", 2))
 
         try:
             for _stream_attempt in range(_max_stream_retries + 1):
@@ -2302,10 +2302,10 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
     if _cfg_stale is not None:
         _stream_stale_timeout_base = _cfg_stale
     else:
-        _stream_stale_timeout_base = float(os.getenv("HERMES_STREAM_STALE_TIMEOUT", 180.0))
+        _stream_stale_timeout_base = float(os.getenv("GPUCLOUD_STREAM_STALE_TIMEOUT", 180.0))
     # Local providers (Ollama, oMLX, llama-cpp) can take 300+ seconds
     # for prefill on large contexts.  Disable the stale detector unless
-    # the user explicitly set HERMES_STREAM_STALE_TIMEOUT.
+    # the user explicitly set GPUCLOUD_STREAM_STALE_TIMEOUT.
     if _stream_stale_timeout_base == 180.0 and agent.base_url and is_local_endpoint(agent.base_url):
         _stream_stale_timeout = float("inf")
         logger.debug("Local provider detected (%s) — stale stream timeout disabled", agent.base_url)

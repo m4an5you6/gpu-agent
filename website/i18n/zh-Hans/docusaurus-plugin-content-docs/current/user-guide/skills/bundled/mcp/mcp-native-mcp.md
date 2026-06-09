@@ -17,7 +17,7 @@ MCP 客户端：连接服务器、注册工具（stdio/HTTP）。
 | 来源 | 内置（默认安装） |
 | 路径 | `skills/mcp/native-mcp` |
 | 版本 | `1.0.0` |
-| 作者 | Hermes Agent |
+| 作者 | GPUCLOUD Agent |
 | 许可证 | MIT |
 | 平台 | linux, macos, windows |
 | 标签 | `MCP`, `Tools`, `Integrations` |
@@ -26,17 +26,17 @@ MCP 客户端：连接服务器、注册工具（stdio/HTTP）。
 ## 参考：完整 SKILL.md
 
 :::info
-以下是 Hermes 在触发此 skill 时加载的完整 skill 定义。这是 agent 在 skill 激活时所看到的指令内容。
+以下是 GPUCLOUD 在触发此 skill 时加载的完整 skill 定义。这是 agent 在 skill 激活时所看到的指令内容。
 :::
 
 # Native MCP 客户端
 
-Hermes Agent 内置了一个 MCP 客户端，它在启动时连接到 MCP 服务器，发现其工具，并将其作为一等工具直接提供给 agent 调用。无需桥接 CLI——来自 MCP 服务器的工具与 `terminal`、`read_file` 等内置工具并列显示。
+GPUCLOUD Agent 内置了一个 MCP 客户端，它在启动时连接到 MCP 服务器，发现其工具，并将其作为一等工具直接提供给 agent 调用。无需桥接 CLI——来自 MCP 服务器的工具与 `terminal`、`read_file` 等内置工具并列显示。
 
 ## 使用场景
 
 在以下情况下使用此 skill：
-- 连接到 MCP 服务器并在 Hermes Agent 中使用其工具
+- 连接到 MCP 服务器并在 GPUCLOUD Agent 中使用其工具
 - 通过 MCP 添加外部能力（文件系统访问、GitHub、数据库、API）
 - 运行基于 stdio 的本地 MCP 服务器（npx、uvx 或任意命令）
 - 连接到远程 HTTP/StreamableHTTP MCP 服务器
@@ -60,7 +60,7 @@ uv pip install mcp
 
 ## 快速开始
 
-在 `~/.hermes/config.yaml` 的 `mcp_servers` 键下添加 MCP 服务器：
+在 `~/.gpucloud/config.yaml` 的 `mcp_servers` 键下添加 MCP 服务器：
 
 ```yaml
 mcp_servers:
@@ -69,7 +69,7 @@ mcp_servers:
     args: ["mcp-server-time"]
 ```
 
-重启 Hermes Agent。启动时它将：
+重启 GPUCLOUD Agent。启动时它将：
 1. 连接到服务器
 2. 发现可用工具
 3. 以 `mcp_time_*` 前缀注册它们
@@ -124,12 +124,12 @@ mcp_servers:
 
 ### 启动发现
 
-Hermes Agent 启动时，`discover_mcp_tools()` 在工具初始化期间被调用：
+GPUCLOUD Agent 启动时，`discover_mcp_tools()` 在工具初始化期间被调用：
 
-1. 从 `~/.hermes/config.yaml` 读取 `mcp_servers`
+1. 从 `~/.gpucloud/config.yaml` 读取 `mcp_servers`
 2. 对每个服务器，在专用后台事件循环中生成连接
 3. 初始化 MCP 会话并调用 `list_tools()` 发现可用工具
-4. 在 Hermes 工具注册表中注册每个工具
+4. 在 GPUCLOUD 工具注册表中注册每个工具
 
 ### 工具命名规范
 
@@ -165,7 +165,7 @@ mcp_{server_name}_{tool_name}
 
 ### Stdio 传输
 
-最常见的传输方式。Hermes 将 MCP 服务器作为子进程启动，并通过 stdin/stdout 通信。
+最常见的传输方式。GPUCLOUD 将 MCP 服务器作为子进程启动，并通过 stdin/stdout 通信。
 
 ```yaml
 mcp_servers:
@@ -194,7 +194,7 @@ mcp_servers:
 
 ### 环境变量过滤
 
-对于 stdio 服务器，Hermes **不会**将你的完整 shell 环境传递给 MCP 子进程。只有以下安全基线变量会被继承：
+对于 stdio 服务器，GPUCLOUD **不会**将你的完整 shell 环境传递给 MCP 子进程。只有以下安全基线变量会被继承：
 
 - `PATH`、`HOME`、`USER`、`LANG`、`LC_ALL`、`TERM`、`SHELL`、`TMPDIR`
 - 所有 `XDG_*` 变量
@@ -232,7 +232,7 @@ pip install mcp
 
 ### "No MCP servers configured"
 
-`~/.hermes/config.yaml` 中没有 `mcp_servers` 键，或该键为空。请至少添加一个服务器。
+`~/.gpucloud/config.yaml` 中没有 `mcp_servers` 键，或该键为空。请至少添加一个服务器。
 
 ### "Failed to connect to MCP server 'X'"
 
@@ -254,7 +254,7 @@ pip install --upgrade mcp
 
 - 检查服务器是否列在 `mcp_servers` 下（而非 `mcp` 或 `servers`）
 - 确保 YAML 缩进正确
-- 查看 Hermes Agent 启动日志中的连接信息
+- 查看 GPUCLOUD Agent 启动日志中的连接信息
 - 工具名称以 `mcp_{server}_{tool}` 为前缀——请查找该模式
 
 ### 连接持续断开
@@ -342,7 +342,7 @@ mcp_servers:
 
 ## Sampling（服务器发起的 LLM 请求）
 
-Hermes 支持 MCP 的 `sampling/createMessage` 能力——MCP 服务器可在工具执行期间通过 agent 请求 LLM 补全。这支持 agent-in-the-loop 工作流（数据分析、内容生成、决策制定）。
+GPUCLOUD 支持 MCP 的 `sampling/createMessage` 能力——MCP 服务器可在工具执行期间通过 agent 请求 LLM 补全。这支持 agent-in-the-loop 工作流（数据分析、内容生成、决策制定）。
 
 Sampling **默认启用**。可按服务器配置：
 

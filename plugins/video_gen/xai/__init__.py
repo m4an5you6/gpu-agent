@@ -100,7 +100,7 @@ def _xai_user_agent() -> str:
 
         return hermes_xai_user_agent()
     except Exception:
-        return "hermes-agent/video_gen"
+        return "gpucloud-agent/video_gen"
 
 
 def _xai_headers(api_key: str) -> Dict[str, str]:
@@ -214,7 +214,7 @@ class XAIVideoGenProvider(VideoGenProvider):
 
     def get_setup_schema(self) -> Dict[str, Any]:
         # Auth resolution lives entirely in the shared ``xai_grok`` post_setup
-        # hook (``hermes_cli/tools_config.py``) so the picker doesn't blindly
+        # hook (``gpucloud_cli/tools_config.py``) so the picker doesn't blindly
         # prompt for an API key when the user is already signed in via xAI
         # Grok OAuth (SuperGrok / Premium+) — TTS / image gen / video gen
         # all share the same credential resolver. The hook offers an
@@ -294,7 +294,7 @@ class XAIVideoGenProvider(VideoGenProvider):
         if not api_key:
             return error_response(
                 error=(
-                    "No xAI credentials found. Sign in via `hermes auth add xai-oauth` "
+                    "No xAI credentials found. Sign in via `gpucloud auth add xai-oauth` "
                     "(SuperGrok / Premium+) or set XAI_API_KEY from "
                     "https://console.x.ai/."
                 ),

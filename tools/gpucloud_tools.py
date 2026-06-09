@@ -6,32 +6,32 @@ from __future__ import annotations
 import json
 from typing import Any, Dict
 
-from hermes_cli.gpucloud_config import GpucloudConfigError
-from hermes_cli.gpucloud_checkpoints import (
+from gpucloud_cli.gpucloud_config import GpucloudConfigError
+from gpucloud_cli.gpucloud_checkpoints import (
     run_checkpoint_cleanup,
     run_checkpoint_latest,
     run_checkpoint_list,
     run_checkpoint_validate,
     run_train_resume,
 )
-from hermes_cli.gpucloud_probe import (
+from gpucloud_cli.gpucloud_probe import (
     run_cluster_check,
     run_gpu_info,
     run_ssh_exec,
 )
-from hermes_cli.gpucloud_inference import (
+from gpucloud_cli.gpucloud_inference import (
     run_infer_health,
     run_infer_start,
     run_infer_status,
     run_infer_stop,
 )
-from hermes_cli.gpucloud_goal import run_goal_prepare
-from hermes_cli.gpucloud_train import (
+from gpucloud_cli.gpucloud_goal import run_goal_prepare
+from gpucloud_cli.gpucloud_train import (
     run_train_logs,
     run_train_start,
     run_train_status,
 )
-from hermes_cli.gpucloud_worker import (
+from gpucloud_cli.gpucloud_worker import (
     run_worker_dry_run,
     run_worker_logs,
     run_worker_preflight,
@@ -40,7 +40,7 @@ from hermes_cli.gpucloud_worker import (
     run_worker_stop,
     run_worker_wait,
 )
-from hermes_cli.gpucloud_worker_goal import (
+from gpucloud_cli.gpucloud_worker_goal import (
     run_worker_goal_run,
     run_worker_goal_status,
 )

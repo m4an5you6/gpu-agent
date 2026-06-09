@@ -267,7 +267,7 @@ def _legacy_posix_scrubber(source_env, is_passthrough):
     _SAFE_ENV_PREFIXES = ("PATH", "HOME", "USER", "LANG", "LC_", "TERM",
                           "TMPDIR", "TMP", "TEMP", "SHELL", "LOGNAME",
                           "XDG_", "PYTHONPATH", "VIRTUAL_ENV", "CONDA",
-                          "HERMES_")
+                          "GPUCLOUD_")
     _SECRET_SUBSTRINGS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL",
                           "PASSWD", "AUTH")
     out = {}
@@ -311,8 +311,8 @@ class TestPosixEquivalence:
         "PYTHONPATH": "/opt/lib",
         "VIRTUAL_ENV": "/home/alice/.venv",
         "CONDA_PREFIX": "/opt/conda",
-        "HERMES_HOME": "/home/alice/.hermes",
-        "HERMES_INTERACTIVE": "1",
+        "GPUCLOUD_HOME": "/home/alice/.gpucloud",
+        "GPUCLOUD_INTERACTIVE": "1",
         # Secret-substring blocks
         "OPENAI_API_KEY": "sk-xxx",
         "GITHUB_TOKEN": "ghp_xxx",

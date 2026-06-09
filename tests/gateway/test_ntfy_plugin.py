@@ -349,7 +349,7 @@ class TestSend:
         assert result.message_id == "abc123"
 
         posted_url = mock_client.post.call_args[0][0]
-        assert posted_url.endswith("/hermes-out")
+        assert posted_url.endswith("/gpucloud-out")
 
     def test_send_falls_back_to_subscribe_topic(self):
         adapter = self._make_adapter(topic="hermes-in")
@@ -365,7 +365,7 @@ class TestSend:
         result = _run(adapter.send("hermes-in", "Hello!"))
         assert result.success is True
         posted_url = mock_client.post.call_args[0][0]
-        assert posted_url.endswith("/hermes-in")
+        assert posted_url.endswith("/gpucloud-in")
 
     def test_send_uses_metadata_publish_topic(self):
         adapter = self._make_adapter(topic="hermes-in")
@@ -741,7 +741,7 @@ class TestStandaloneSend:
         assert result["platform"] == "ntfy"
         assert result["message_id"] == "id-42"
         posted_url = mock_client.post.call_args[0][0]
-        assert posted_url == "https://ntfy.example.com/hermes-in"
+        assert posted_url == "https://ntfy.example.com/gpucloud-in"
 
     def test_emits_bearer_token_when_configured(self, monkeypatch):
         monkeypatch.setenv("NTFY_TOPIC", "hermes-in")

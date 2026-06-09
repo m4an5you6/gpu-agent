@@ -1,11 +1,11 @@
-"""SimpleX Chat platform adapter (Hermes plugin).
+"""SimpleX Chat platform adapter (GPUCLOUD plugin).
 
 Connects to a simplex-chat daemon running in WebSocket mode.
 Inbound messages arrive via a persistent WebSocket connection.
 Outbound messages use the same WebSocket with JSON commands.
 
-This adapter ships as a Hermes platform plugin under
-``plugins/platforms/simplex/``. The Hermes plugin loader scans the
+This adapter ships as a GPUCLOUD platform plugin under
+``plugins/platforms/simplex/``. The GPUCLOUD plugin loader scans the
 directory at startup, calls ``register(ctx)``, and the platform
 becomes available to ``gateway/run.py`` and ``tools/send_message_tool``
 through the registry — no edits to core files are required.
@@ -26,7 +26,7 @@ Optional environment variables:
     SIMPLEX_HOME_CHANNEL_NAME  Human label for the home channel
 
 The ``websockets`` Python package is imported lazily — the plugin is
-discoverable and `hermes setup` can describe it even when websockets is
+discoverable and `gpucloud setup` can describe it even when websockets is
 not installed. ``check_requirements()`` returns False until the package
 is present, so the gateway will not attempt to instantiate the adapter.
 """
@@ -41,7 +41,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 # Lazy import: BasePlatformAdapter and friends live in the main repo.
-# Imported at module top because they're stdlib-only inside Hermes — no
+# Imported at module top because they're stdlib-only inside GPUCLOUD — no
 # external dependency that would block the plugin from loading.
 from gateway.config import Platform, PlatformConfig
 from gateway.platforms.base import (
@@ -618,8 +618,8 @@ async def _standalone_send(
     """Open an ephemeral WebSocket to the daemon, send, and close.
 
     Used by ``tools/send_message_tool._send_via_adapter`` when the gateway
-    runner is not in this process (e.g. ``hermes cron`` running as a
-    separate process from ``hermes gateway``). Without this hook,
+    runner is not in this process (e.g. ``gpucloud cron`` running as a
+    separate process from ``gpucloud gateway``). Without this hook,
     ``deliver=simplex`` cron jobs fail with "No live adapter for platform".
 
     ``thread_id`` and ``force_document`` are accepted for signature parity
@@ -661,10 +661,10 @@ async def _standalone_send(
 
 
 def interactive_setup() -> None:
-    """Minimal stdin wizard for ``hermes setup gateway`` → SimpleX.
+    """Minimal stdin wizard for ``gpucloud setup gateway`` → SimpleX.
 
     Prompts for the WebSocket URL and the optional allowlist / home channel.
-    Writes to ``~/.hermes/.env`` via ``hermes_cli.config``.
+    Writes to ``~/.gpucloud/.env`` via ``gpucloud_cli.config``.
     """
     print()
     print("SimpleX Chat setup")
@@ -675,9 +675,9 @@ def interactive_setup() -> None:
     print()
 
     try:
-        from hermes_cli.config import get_env_value, save_env_value
+        from gpucloud_cli.config import get_env_value, save_env_value
     except ImportError:
-        print("hermes_cli.config not available; set SIMPLEX_* vars manually in ~/.hermes/.env")
+        print("gpucloud_cli.config not available; set SIMPLEX_* vars manually in ~/.gpucloud/.env")
         return
 
     def _prompt(var: str, prompt: str, *, secret: bool = False) -> None:
@@ -685,7 +685,7 @@ def interactive_setup() -> None:
         suffix = " [keep current]" if existing else ""
         try:
             if secret:
-                from hermes_cli.secret_prompt import masked_secret_prompt
+                from gpucloud_cli.secret_prompt import masked_secret_prompt
                 value = masked_secret_prompt(f"{prompt}{suffix}: ")
             else:
                 value = input(f"{prompt}{suffix}: ").strip()
@@ -702,7 +702,7 @@ def interactive_setup() -> None:
 
 
 def register(ctx) -> None:
-    """Plugin entry point — called by the Hermes plugin system at startup."""
+    """Plugin entry point — called by the GPUCLOUD plugin system at startup."""
     ctx.register_platform(
         name="simplex",
         label="SimpleX Chat",
@@ -714,7 +714,7 @@ def register(ctx) -> None:
         install_hint="pip install websockets   # SimpleX adapter requires the websockets package",
         setup_fn=interactive_setup,
         # Env-driven auto-configuration: seeds PlatformConfig.extra so
-        # env-only setups show up in `hermes gateway status` without
+        # env-only setups show up in `gpucloud gateway status` without
         # instantiating the adapter.
         env_enablement_fn=_env_enablement,
         # Cron home-channel delivery support — `deliver=simplex` cron jobs

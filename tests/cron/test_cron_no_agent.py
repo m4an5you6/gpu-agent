@@ -20,18 +20,18 @@ import pytest
 
 @pytest.fixture
 def hermes_env(tmp_path, monkeypatch):
-    """Isolate HERMES_HOME for each test so jobs/scripts don't leak."""
-    home = tmp_path / ".hermes"
+    """Isolate GPUCLOUD_HOME for each test so jobs/scripts don't leak."""
+    home = tmp_path / ".gpucloud"
     home.mkdir()
     (home / "scripts").mkdir()
     (home / "cron").mkdir()
 
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("GPUCLOUD_HOME", str(home))
 
-    # Reload modules that cache get_hermes_home() at import time.
+    # Reload modules that cache get_gpucloud_home() at import time.
     import importlib
-    import hermes_constants
-    importlib.reload(hermes_constants)
+    import gpucloud_constants
+    importlib.reload(gpucloud_constants)
     import cron.jobs
     importlib.reload(cron.jobs)
     import cron.scheduler

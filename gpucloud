@@ -6,5 +6,5 @@ This wrapper should behave like the installed `gpucloud` command.
 """
 
 if __name__ == "__main__":
-    from hermes_cli.main import main
+    from gpucloud_cli.main import main
     main()

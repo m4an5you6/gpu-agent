@@ -1,4 +1,4 @@
-# nix/web.nix — Hermes Web Dashboard (Vite/React) frontend build
+# nix/web.nix — GPUCLOUD Web Dashboard (Vite/React) frontend build
 { pkgs, hermesNpmLib, ... }:
 let
   src = ../web;

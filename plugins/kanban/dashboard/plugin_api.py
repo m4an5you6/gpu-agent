@@ -3,7 +3,7 @@
 Mounted at /api/plugins/kanban/ by the dashboard plugin system.
 
 This layer is intentionally thin: every handler is a small wrapper around
-``hermes_cli.kanban_db`` or a direct SQL query. Writes use the same code
+``gpucloud_cli.kanban_db`` or a direct SQL query. Writes use the same code
 paths the CLI and gateway ``/kanban`` command use, so the three surfaces
 cannot drift.
 
@@ -18,15 +18,15 @@ Plugin HTTP routes go through the dashboard's session-token auth middleware
 ``/api/plugins/...`` request must present the session bearer token (or the
 session cookie set when you load the dashboard HTML). The token is the
 random per-process ``_SESSION_TOKEN`` printed at startup; the dashboard's
-own pages inject it via ``window.__HERMES_SESSION_TOKEN__`` so logged-in
+own pages inject it via ``window.__GPUCLOUD_SESSION_TOKEN__`` so logged-in
 browsers don't have to handle it manually.
 
 For the ``/events`` WebSocket we still require the session token as a
 ``?token=`` query parameter (browsers cannot set the ``Authorization``
 header on an upgrade request), matching the established pattern used by
-the in-browser PTY bridge in ``hermes_cli/web_server.py``.
+the in-browser PTY bridge in ``gpucloud_cli/web_server.py``.
 
-This means ``hermes dashboard --host 0.0.0.0`` is safe to run on a LAN:
+This means ``gpucloud dashboard --host 0.0.0.0`` is safe to run on a LAN:
 plugin routes are no longer an unauthenticated exception. The auth still
 isn't multi-user — anyone who can read the printed URL+token gets full
 dashboard access — but they can't ride along just because they can reach
@@ -48,8 +48,8 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status as http_status
 from pydantic import BaseModel, Field
 
-from hermes_cli import kanban_db
-from hermes_cli import kanban_diagnostics as kd
+from gpucloud_cli import kanban_db
+from gpucloud_cli import kanban_diagnostics as kd
 
 log = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ def _check_ws_token(provided: Optional[str]) -> bool:
     if not provided:
         return False
     try:
-        from hermes_cli import web_server as _ws
+        from gpucloud_cli import web_server as _ws
     except Exception:
         # No dashboard context (tests). Accept so the tail loop is still
         # testable; in production the dashboard module always imports
@@ -227,11 +227,11 @@ def _compute_task_diagnostics(
     and return ``{task_id: [diagnostic_dict, ...]}``.
 
     Tasks with no active diagnostics are omitted from the result.
-    Uses ``hermes_cli.kanban_diagnostics`` — see that module for the
+    Uses ``gpucloud_cli.kanban_diagnostics`` — see that module for the
     rule definitions.
     """
-    from hermes_cli import kanban_diagnostics as kd
-    from hermes_cli.config import load_config
+    from gpucloud_cli import kanban_diagnostics as kd
+    from gpucloud_cli.config import load_config
 
     diag_config = kd.config_from_runtime_config(load_config())
 
@@ -299,7 +299,7 @@ def _warnings_summary_from_diagnostics(
     """
     if not diagnostics:
         return None
-    from hermes_cli.kanban_diagnostics import SEVERITY_ORDER
+    from gpucloud_cli.kanban_diagnostics import SEVERITY_ORDER
 
     kinds: dict[str, int] = {}
     latest = 0
@@ -367,7 +367,7 @@ def get_board(
     install doesn't surface a "failed to load" error on the plugin tab.
 
     ``board`` selects which board to read from. Omitting it falls
-    through to the active board (``HERMES_KANBAN_BOARD`` env → on-disk
+    through to the active board (``GPUCLOUD_KANBAN_BOARD`` env → on-disk
     ``current`` pointer → ``default``).
     """
     board = _resolve_board(board)
@@ -595,7 +595,7 @@ def create_task(payload: CreateTaskBody, board: Optional[str] = Query(None)):
         # and unassigned tasks can't be dispatched regardless.
         if task and task.status == "ready" and task.assignee:
             try:
-                from hermes_cli.kanban import _check_dispatcher_presence
+                from gpucloud_cli.kanban import _check_dispatcher_presence
                 running, message = _check_dispatcher_presence()
                 if not running and message:
                     body["warning"] = message
@@ -622,7 +622,7 @@ class UpdateTaskBody(BaseModel):
     result: Optional[str] = None
     block_reason: Optional[str] = None
     # Structured handoff fields — forwarded to complete_task when status
-    # transitions to 'done'. Dashboard parity with ``hermes kanban
+    # transitions to 'done'. Dashboard parity with ``gpucloud kanban
     # complete --summary ... --metadata ...``.
     summary: Optional[str] = None
     metadata: Optional[dict] = None
@@ -1067,7 +1067,7 @@ def bulk_update(payload: BulkTaskBody, board: Optional[str] = Query(None)):
 
 # ---------------------------------------------------------------------------
 # Diagnostics — fleet-wide distress signals (hallucinations, crashes,
-# spawn failures, stuck-blocked). See hermes_cli.kanban_diagnostics for
+# spawn failures, stuck-blocked). See gpucloud_cli.kanban_diagnostics for
 # the rule engine.
 # ---------------------------------------------------------------------------
 
@@ -1085,7 +1085,7 @@ def list_diagnostics(
 
     Severity-filterable so the UI can render "just the critical ones"
     or the CLI can grep. Useful for the board-header attention strip
-    AND for ``hermes kanban diagnostics`` which shells to this
+    AND for ``gpucloud kanban diagnostics`` which shells to this
     endpoint when the dashboard's running, or invokes the engine
     directly when it isn't.
     """
@@ -1130,7 +1130,7 @@ def list_diagnostics(
                 "diagnostics": dl,
             })
         # Sort: highest severity first, then most recent.
-        from hermes_cli.kanban_diagnostics import SEVERITY_ORDER
+        from gpucloud_cli.kanban_diagnostics import SEVERITY_ORDER
         sev_idx = {s: i for i, s in enumerate(SEVERITY_ORDER)}
         def _sort_key(row):
             top = row["diagnostics"][0]
@@ -1329,7 +1329,7 @@ def reclaim_task_endpoint(
     Used by the dashboard recovery popover when an operator wants to
     abort a stuck worker (e.g. one that keeps hallucinating card ids)
     without waiting for the claim TTL. Maps 1:1 to
-    ``hermes kanban reclaim <task_id> --reason ...``.
+    ``gpucloud kanban reclaim <task_id> --reason ...``.
     """
     board = _resolve_board(board)
     conn = _conn(board=board)
@@ -1363,7 +1363,7 @@ def specify_task_endpoint(
     board: Optional[str] = Query(None),
 ):
     """Flesh out a triage-column task via the auxiliary LLM and promote
-    it to ``todo``. Maps 1:1 to ``hermes kanban specify <task_id>``.
+    it to ``todo``. Maps 1:1 to ``gpucloud kanban specify <task_id>``.
 
     Returns the outcome shape used by the CLI: ``{ok, task_id, reason,
     new_title}``. A non-OK outcome is NOT an HTTP error — the UI renders
@@ -1378,12 +1378,12 @@ def specify_task_endpoint(
     board = _resolve_board(board)
     # Pin the board for the duration of this call so the specifier module
     # (which calls ``kb.connect()`` with no args) hits the right DB.
-    prev_env = os.environ.get("HERMES_KANBAN_BOARD")
+    prev_env = os.environ.get("GPUCLOUD_KANBAN_BOARD")
     try:
-        os.environ["HERMES_KANBAN_BOARD"] = board or kanban_db.DEFAULT_BOARD
+        os.environ["GPUCLOUD_KANBAN_BOARD"] = board or kanban_db.DEFAULT_BOARD
         # Import lazily so a missing auxiliary client at import time
         # doesn't break plugin load.
-        from hermes_cli import kanban_specify  # noqa: WPS433 (intentional)
+        from gpucloud_cli import kanban_specify  # noqa: WPS433 (intentional)
 
         outcome = kanban_specify.specify_task(
             task_id,
@@ -1391,9 +1391,9 @@ def specify_task_endpoint(
         )
     finally:
         if prev_env is None:
-            os.environ.pop("HERMES_KANBAN_BOARD", None)
+            os.environ.pop("GPUCLOUD_KANBAN_BOARD", None)
         else:
-            os.environ["HERMES_KANBAN_BOARD"] = prev_env
+            os.environ["GPUCLOUD_KANBAN_BOARD"] = prev_env
 
     return {
         "ok": bool(outcome.ok),
@@ -1420,7 +1420,7 @@ def reassign_task_endpoint(
     Used by the dashboard recovery popover when an operator wants to
     retry a task with a different worker profile (e.g. switch to a
     smarter model after the assigned profile keeps hallucinating).
-    Maps 1:1 to ``hermes kanban reassign <task_id> <profile> [--reclaim]``.
+    Maps 1:1 to ``gpucloud kanban reassign <task_id> <profile> [--reclaim]``.
     """
     board = _resolve_board(board)
     conn = _conn(board=board)
@@ -1450,14 +1450,14 @@ def reassign_task_endpoint(
 
 @router.get("/config")
 def get_config():
-    """Return kanban dashboard preferences from ~/.hermes/config.yaml.
+    """Return kanban dashboard preferences from ~/.gpucloud/config.yaml.
 
     Reads the ``dashboard.kanban`` section if present; defaults otherwise.
     Used by the UI to pre-select tenant filters, toggle markdown rendering,
     or set column-width preferences without a round-trip per page load.
     """
     try:
-        from hermes_cli.config import load_config
+        from gpucloud_cli.config import load_config
         cfg = load_config() or {}
     except Exception:
         cfg = {}
@@ -1520,9 +1520,9 @@ def _configured_home_channels() -> list[dict]:
 
 
 def _active_profile_name() -> str:
-    """Return the current Hermes profile name for notify-sub ownership."""
+    """Return the current GPUCLOUD profile name for notify-sub ownership."""
     try:
-        from hermes_cli.profiles import get_active_profile_name
+        from gpucloud_cli.profiles import get_active_profile_name
         return get_active_profile_name() or "default"
     except Exception:
         return "default"
@@ -1655,7 +1655,7 @@ def get_stats(board: Optional[str] = Query(None)):
 def get_assignees(board: Optional[str] = Query(None)):
     """Known profiles + per-profile task counts.
 
-    Returns the union of ``~/.hermes/profiles/*`` on disk and every
+    Returns the union of ``~/.gpucloud/profiles/*`` on disk and every
     distinct assignee currently used on the board. The dashboard uses
     this to populate its assignee dropdown so a freshly-created profile
     appears in the picker before it's been given any task.
@@ -1883,7 +1883,7 @@ def list_profile_roster():
     just less precisely.
     """
     try:
-        from hermes_cli import profiles as profiles_mod
+        from gpucloud_cli import profiles as profiles_mod
         profiles = profiles_mod.list_profiles()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"failed to list profiles: {exc}")
@@ -1913,12 +1913,12 @@ def update_profile_description(profile_name: str, payload: DescribeBody):
     ``--overwrite``.
     """
     try:
-        from hermes_cli import profiles as profiles_mod
+        from gpucloud_cli import profiles as profiles_mod
         canon = profiles_mod.normalize_profile_name(profile_name)
         if canon == "default":
-            from hermes_constants import get_hermes_home  # type: ignore
+            from gpucloud_constants import get_gpucloud_home  # type: ignore
             from pathlib import Path as _Path
-            profile_dir = _Path(get_hermes_home())
+            profile_dir = _Path(get_gpucloud_home())
         else:
             profile_dir = profiles_mod.get_profile_dir(canon)
         if not profile_dir.is_dir():
@@ -1943,13 +1943,13 @@ def auto_describe_profile(profile_name: str, payload: DescribeAutoBody):
     ``description_auto: true`` so the dashboard can surface a "review"
     badge.
 
-    Maps 1:1 to ``hermes profile describe <name> --auto``. Non-OK
+    Maps 1:1 to ``gpucloud profile describe <name> --auto``. Non-OK
     outcomes are NOT HTTP errors — the UI renders the reason inline
     (e.g. "no auxiliary client configured") so the operator can fix
     config and retry without a page reload.
     """
     try:
-        from hermes_cli import profile_describer  # noqa: WPS433 (intentional)
+        from gpucloud_cli import profile_describer  # noqa: WPS433 (intentional)
         outcome = profile_describer.describe_profile(
             profile_name,
             overwrite=bool(payload.overwrite),
@@ -1980,7 +1980,7 @@ def decompose_task_endpoint(
 ):
     """Fan a triage-column task out into a graph of child tasks via the
     auxiliary LLM, routed to specialist profiles by description. Maps
-    1:1 to ``hermes kanban decompose <task_id>``.
+    1:1 to ``gpucloud kanban decompose <task_id>``.
 
     Returns the outcome shape used by the CLI: ``{ok, task_id, reason,
     fanout, child_ids, new_title}``. A non-OK outcome is NOT an HTTP
@@ -1990,19 +1990,19 @@ def decompose_task_endpoint(
     can take minutes on reasoning models.
     """
     board = _resolve_board(board)
-    prev_env = os.environ.get("HERMES_KANBAN_BOARD")
+    prev_env = os.environ.get("GPUCLOUD_KANBAN_BOARD")
     try:
-        os.environ["HERMES_KANBAN_BOARD"] = board or kanban_db.DEFAULT_BOARD
-        from hermes_cli import kanban_decompose  # noqa: WPS433 (intentional)
+        os.environ["GPUCLOUD_KANBAN_BOARD"] = board or kanban_db.DEFAULT_BOARD
+        from gpucloud_cli import kanban_decompose  # noqa: WPS433 (intentional)
         outcome = kanban_decompose.decompose_task(
             task_id,
             author=(payload.author or None),
         )
     finally:
         if prev_env is None:
-            os.environ.pop("HERMES_KANBAN_BOARD", None)
+            os.environ.pop("GPUCLOUD_KANBAN_BOARD", None)
         else:
-            os.environ["HERMES_KANBAN_BOARD"] = prev_env
+            os.environ["GPUCLOUD_KANBAN_BOARD"] = prev_env
 
     return {
         "ok": bool(outcome.ok),
@@ -2031,7 +2031,7 @@ def get_orchestration_settings():
     """Return the current kanban orchestration knobs from config.yaml
     plus the resolved effective values (filling in fallbacks)."""
     try:
-        from hermes_cli.config import load_config
+        from gpucloud_cli.config import load_config
         cfg = load_config() or {}
     except Exception:
         cfg = {}
@@ -2045,7 +2045,7 @@ def get_orchestration_settings():
     resolved_orch = explicit_orch
     resolved_default = explicit_default
     try:
-        from hermes_cli import profiles as profiles_mod
+        from gpucloud_cli import profiles as profiles_mod
         active_default = profiles_mod.get_active_profile_name() or "default"
         if not resolved_orch or not profiles_mod.profile_exists(resolved_orch):
             resolved_orch = active_default
@@ -2071,7 +2071,7 @@ def get_orchestration_settings():
 
 @router.put("/orchestration")
 def set_orchestration_settings(payload: OrchestrationSettingsBody):
-    """Update the kanban orchestration knobs in ~/.hermes/config.yaml.
+    """Update the kanban orchestration knobs in ~/.gpucloud/config.yaml.
 
     Each field is optional — only fields explicitly passed are
     written. ``orchestrator_profile`` / ``default_assignee`` accept
@@ -2079,7 +2079,7 @@ def set_orchestration_settings(payload: OrchestrationSettingsBody):
     profile.
     """
     try:
-        from hermes_cli.config import load_config, save_config
+        from gpucloud_cli.config import load_config, save_config
         cfg = load_config() or {}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"failed to load config: {exc}")
@@ -2091,7 +2091,7 @@ def set_orchestration_settings(payload: OrchestrationSettingsBody):
 
     # Validate any non-empty profile names exist before saving.
     try:
-        from hermes_cli import profiles as profiles_mod
+        from gpucloud_cli import profiles as profiles_mod
     except Exception:
         profiles_mod = None  # type: ignore
 
@@ -2144,7 +2144,7 @@ def set_orchestration_settings(payload: OrchestrationSettingsBody):
 async def stream_events(ws: WebSocket):
     # Enforce the dashboard session token as a query param — browsers can't
     # set Authorization on a WS upgrade. This matches how the PTY bridge
-    # authenticates in hermes_cli/web_server.py.
+    # authenticates in gpucloud_cli/web_server.py.
     token = ws.query_params.get("token")
     if not _check_ws_token(token):
         await ws.close(code=http_status.WS_1008_POLICY_VIOLATION)

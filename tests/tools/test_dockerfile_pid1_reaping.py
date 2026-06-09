@@ -90,7 +90,7 @@ def _instruction_text(dockerfile_text: str) -> str:
 def test_dockerfile_installs_an_init_for_zombie_reaping(dockerfile_text):
     """Some init (tini, dumb-init, catatonit, s6-overlay) must be installed.
 
-    Without a PID-1 init that handles SIGCHLD, hermes accumulates zombie
+    Without a PID-1 init that handles SIGCHLD, gpucloud accumulates zombie
     processes from MCP stdio subprocesses, git operations, browser
     daemons, etc.  In long-running Docker deployments this eventually
     exhausts the PID table.
@@ -107,7 +107,7 @@ def test_dockerfile_installs_an_init_for_zombie_reaping(dockerfile_text):
     assert installed, (
         "No PID-1 init detected in Dockerfile instructions (looked for: "
         f"{', '.join(_KNOWN_INIT_TOKENS)}). Without an init process to "
-        "reap orphaned subprocesses, hermes accumulates zombies in Docker "
+        "reap orphaned subprocesses, gpucloud accumulates zombies in Docker "
         "deployments. See issue #15012."
     )
 
@@ -135,21 +135,21 @@ def test_dockerfile_entrypoint_routes_through_the_init(dockerfile_text):
     assert routes_through_init, (
         f"ENTRYPOINT does not route through a PID-1 init: {entrypoint_line!r}. "
         f"Expected one of {_KNOWN_INIT_TOKENS}. If the init is installed but "
-        "not wired into ENTRYPOINT, hermes still runs as PID 1 and zombies "
+        "not wired into ENTRYPOINT, gpucloud still runs as PID 1 and zombies "
         "will accumulate (#15012)."
     )
 
 
 def test_dockerfile_installs_tui_dependencies(dockerfile_text):
     # The TUI workspace manifests must be present so ``npm install`` can
-    # resolve dependencies. The bundled ``hermes-ink`` workspace package is
+    # resolve dependencies. The bundled ``gpucloud-ink`` workspace package is
     # now COPIED into the image as a whole tree (not just its lockfile)
     # because it's referenced as a ``file:`` workspace dependency from
     # ``ui-tui/package.json`` — copying the tree avoids npm stopping at a
     # bare ``package.json`` shell.
     assert "ui-tui/package.json" in dockerfile_text
     assert "ui-tui/package-lock.json" in dockerfile_text
-    assert "ui-tui/packages/hermes-ink/" in dockerfile_text
+    assert "ui-tui/packages/gpucloud-ink/" in dockerfile_text
     assert any(
         "ui-tui" in step and "npm" in step and (" install" in step or " ci" in step)
         for step in _run_steps(dockerfile_text)
@@ -178,17 +178,17 @@ def test_dockerfile_builds_tui_assets(dockerfile_text):
 
 
 def test_dockerfile_materializes_local_tui_ink_package(dockerfile_text):
-    # ``hermes-ink`` is a bundled workspace package referenced from
+    # ``gpucloud-ink`` is a bundled workspace package referenced from
     # ``ui-tui/package.json`` via ``file:`` — not pulled from the npm
     # registry. The contract this test pins is just that the image
-    # actually carries the package source so ``await import('@hermes/ink')``
+    # actually carries the package source so ``await import('@gpucloud/ink')``
     # can resolve at runtime; the previous, much pickier assertion (manual
-    # ``rm -rf`` + ``npm install --omit=dev --prefix node_modules/@hermes/ink``)
+    # ``rm -rf`` + ``npm install --omit=dev --prefix node_modules/@gpucloud/ink``)
     # baked in implementation details of an older materialisation flow that
     # was simplified once npm workspaces handled the resolution natively.
-    assert "ui-tui/packages/hermes-ink/" in dockerfile_text, (
-        "Dockerfile must COPY the bundled hermes-ink workspace package "
-        "so ``await import('@hermes/ink')`` resolves at runtime."
+    assert "ui-tui/packages/gpucloud-ink/" in dockerfile_text, (
+        "Dockerfile must COPY the bundled gpucloud-ink workspace package "
+        "so ``await import('@gpucloud/ink')`` resolves at runtime."
     )
 
 

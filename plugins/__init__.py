@@ -1,1 +1,1 @@
-# Hermes plugins package
+# GPUCLOUD plugins package

@@ -12,7 +12,7 @@ Features:
 - Shared file store tools (upload, list, read, ingest, delete)
 - Explicit memory tools (profile, search, context, remember, forget)
 
-Config (env vars or hermes config.yaml under retaindb:):
+Config (env vars or gpucloud config.yaml under retaindb:):
   RETAINDB_API_KEY     — API key (required)
   RETAINDB_BASE_URL    — API endpoint (default: https://api.retaindb.com)
   RETAINDB_PROJECT     — Project identifier (optional — defaults to "default")
@@ -457,7 +457,7 @@ class RetainDBMemoryProvider(MemoryProvider):
         self._queue: _WriteQueue | None = None
         self._user_id = "default"
         self._session_id = ""
-        self._agent_id = "hermes"
+        self._agent_id = "gpucloud"
         self._lock = threading.Lock()
 
         # Prefetch caches
@@ -490,28 +490,28 @@ class RetainDBMemoryProvider(MemoryProvider):
         api_key = os.environ.get("RETAINDB_API_KEY", "")
         base_url = re.sub(r"/+$", "", os.environ.get("RETAINDB_BASE_URL", _DEFAULT_BASE_URL))
 
-        # Project resolution: RETAINDB_PROJECT > hermes-<profile> > "default"
+        # Project resolution: RETAINDB_PROJECT > gpucloud-<profile> > "default"
         # If unset, the API auto-creates and uses the "default" project — no config required.
         explicit = os.environ.get("RETAINDB_PROJECT")
         if explicit:
             project = explicit
         else:
-            hermes_home = str(kwargs.get("hermes_home", ""))
-            profile_name = os.path.basename(hermes_home) if hermes_home else ""
-            project = f"hermes-{profile_name}" if (profile_name and profile_name not in {"", ".hermes"}) else "default"
+            gpucloud_home = str(kwargs.get("gpucloud_home", ""))
+            profile_name = os.path.basename(gpucloud_home) if gpucloud_home else ""
+            project = f"hermes-{profile_name}" if (profile_name and profile_name not in {"", ".gpucloud"}) else "default"
 
         self._client = _Client(api_key, base_url, project)
         self._session_id = session_id
         self._user_id = kwargs.get("user_id", "default") or "default"
-        self._agent_id = kwargs.get("agent_id", "hermes") or "hermes"
+        self._agent_id = kwargs.get("agent_id", "gpucloud") or "gpucloud"
 
-        from hermes_constants import get_hermes_home
-        hermes_home_path = get_hermes_home()
-        db_path = hermes_home_path / "retaindb_queue.db"
+        from gpucloud_constants import get_gpucloud_home
+        gpucloud_home_path = get_gpucloud_home()
+        db_path = gpucloud_home_path / "retaindb_queue.db"
         self._queue = _WriteQueue(self._client, db_path)
 
         # Seed agent identity from SOUL.md in background
-        soul_path = hermes_home_path / "SOUL.md"
+        soul_path = gpucloud_home_path / "SOUL.md"
         if soul_path.exists():
             soul_content = soul_path.read_text(encoding="utf-8", errors="replace").strip()
             if soul_content:

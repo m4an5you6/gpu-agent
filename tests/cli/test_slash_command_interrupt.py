@@ -13,11 +13,11 @@ through a thin wrapper that mirrors the real dispatch shape.
 
 from unittest.mock import MagicMock, patch
 
-from cli import HermesCLI
+from cli import GPUCloudCLI
 
 
 def _make_cli():
-    cli = HermesCLI.__new__(HermesCLI)
+    cli = GPUCloudCLI.__new__(GPUCloudCLI)
     cli._should_exit = False
     cli.conversation_history = []
     cli.agent = None

@@ -12,13 +12,13 @@ __pycache__/
 .env.production.local
 .env.development
 .env.test
-.hermes-docker/
+.gpucloud-docker/
 .notebooklm-home/
 .notebooklm-cli-venv/
 .notebooklm-playwright/
 .pip-cache/
 .uv-cache/
-compose.hermes.local.yml
+compose.gpucloud.local.yml
 export*
 __pycache__/model_tools.cpython-310.pyc
 __pycache__/web_tools.cpython-310.pyc
@@ -55,14 +55,14 @@ testlogs
 # CLI config (may contain sensitive SSH paths)
 cli-config.yaml
 
-# Skills Hub state (lives in ~/.hermes/skills/.hub/ at runtime, but just in case)
+# Skills Hub state (lives in ~/.gpucloud/skills/.hub/ at runtime, but just in case)
 skills/.hub/
 ignored/
 .worktrees/
 environments/benchmarks/evals/
 
 # Web UI build output
-hermes_cli/web_dist/
+gpucloud_cli/web_dist/
 
 # Web UI assets — synced from @nous-research/ui at build time via
 # `npm run sync-assets` (see web/package.json).
@@ -85,10 +85,10 @@ website/static/api/skills-index.json
 website/static/api/skills.json
 website/static/api/skills-meta.json
 models-dev-upstream/
-hermes_cli/tui_dist/*
-hermes_cli/scripts/
+gpucloud_cli/tui_dist/*
+gpucloud_cli/scripts/
 docs/superpowers/*
-# Working directory for the Hermes Agent's session state (~/.hermes/ at runtime;
+# Working directory for the GPUCLOUD Agent's session state (~/.gpucloud/ at runtime;
 # also created in-repo when an agent operates in this checkout). Plans, audit
 # logs, and per-session caches are never artifacts of the codebase.
-.hermes/
+.gpucloud/

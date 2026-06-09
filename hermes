@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-Hermes Agent CLI launcher.
+GPUCLOUD Agent CLI launcher.
 
-This wrapper should behave like the installed `hermes` command, including
-subcommands such as `gateway`, `cron`, and `doctor`.
+Deprecated compatibility wrapper for the old `gpucloud` command.
 """
 
 if __name__ == "__main__":
-    from hermes_cli.main import main
+    from gpucloud_cli.hermes_compat import main
     main()

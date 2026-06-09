@@ -504,7 +504,7 @@ async def test_status_command_bypasses_active_session_guard():
 
     async def fake_handler(event):
         handler_called_with.append(event)
-        return "📊 **Hermes Gateway Status**\n**Agent Running:** Yes ⚡"
+        return "📊 **GPUCLOUD Gateway Status**\n**Agent Running:** Yes ⚡"
 
     # Concrete subclass to avoid abstract method errors
     class _ConcreteAdapter(BasePlatformAdapter):
@@ -547,7 +547,7 @@ async def test_status_command_bypasses_active_session_guard():
 
 @pytest.mark.asyncio
 async def test_profile_command_reports_custom_root_profile(monkeypatch, tmp_path):
-    """Gateway /profile detects custom-root profiles (not under ~/.hermes)."""
+    """Gateway /profile detects custom-root profiles (not under ~/.gpucloud)."""
     from pathlib import Path
 
     session_entry = SessionEntry(
@@ -561,7 +561,7 @@ async def test_profile_command_reports_custom_root_profile(monkeypatch, tmp_path
     runner = _make_runner(session_entry)
     profile_home = tmp_path / "profiles" / "coder"
 
-    monkeypatch.setenv("HERMES_HOME", str(profile_home))
+    monkeypatch.setenv("GPUCLOUD_HOME", str(profile_home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path / "unrelated-home")
 
     result = await runner._handle_profile_command(_make_event("/profile"))

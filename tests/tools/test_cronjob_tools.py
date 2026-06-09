@@ -123,11 +123,11 @@ class TestScanCronSkillAssembled:
     def test_descriptive_attack_command_prose_allowed(self):
         """Security postmortems and runbooks routinely describe attack
         commands in prose — that's not a payload, it's documentation.
-        Real example: the `hermes-agent-dev` skill contains a postmortem
-        section saying 'the attacker could just cat ~/.hermes/.env'.
+        Real example: the `gpucloud-agent-dev` skill contains a postmortem
+        section saying 'the attacker could just cat ~/.gpucloud/.env'.
         """
         assert _scan_cron_skill_assembled(
-            "the attacker could just cat ~/.hermes/.env to steal credentials"
+            "the attacker could just cat ~/.gpucloud/.env to steal credentials"
         ) == ""
         assert _scan_cron_skill_assembled(
             "this rule writes to authorized_keys for persistence"
@@ -149,59 +149,59 @@ class TestScanCronSkillAssembled:
 class TestCronjobRequirements:
     def test_requires_no_crontab_binary(self, monkeypatch):
         """Cron is internal (JSON-based scheduler), no system crontab needed."""
-        monkeypatch.setenv("HERMES_INTERACTIVE", "1")
-        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
+        monkeypatch.setenv("GPUCLOUD_INTERACTIVE", "1")
+        monkeypatch.delenv("GPUCLOUD_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("GPUCLOUD_EXEC_ASK", raising=False)
         # Even with no crontab in PATH, the cronjob tool should be available
-        # because hermes uses an internal scheduler, not system crontab.
+        # because gpucloud uses an internal scheduler, not system crontab.
         assert check_cronjob_requirements() is True
 
     def test_accepts_interactive_mode(self, monkeypatch):
-        monkeypatch.setenv("HERMES_INTERACTIVE", "1")
-        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
+        monkeypatch.setenv("GPUCLOUD_INTERACTIVE", "1")
+        monkeypatch.delenv("GPUCLOUD_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("GPUCLOUD_EXEC_ASK", raising=False)
 
         assert check_cronjob_requirements() is True
 
     def test_accepts_gateway_session(self, monkeypatch):
-        monkeypatch.delenv("HERMES_INTERACTIVE", raising=False)
-        monkeypatch.setenv("HERMES_GATEWAY_SESSION", "1")
-        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
+        monkeypatch.delenv("GPUCLOUD_INTERACTIVE", raising=False)
+        monkeypatch.setenv("GPUCLOUD_GATEWAY_SESSION", "1")
+        monkeypatch.delenv("GPUCLOUD_EXEC_ASK", raising=False)
 
         assert check_cronjob_requirements() is True
 
     def test_accepts_exec_ask(self, monkeypatch):
-        monkeypatch.delenv("HERMES_INTERACTIVE", raising=False)
-        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
-        monkeypatch.setenv("HERMES_EXEC_ASK", "1")
+        monkeypatch.delenv("GPUCLOUD_INTERACTIVE", raising=False)
+        monkeypatch.delenv("GPUCLOUD_GATEWAY_SESSION", raising=False)
+        monkeypatch.setenv("GPUCLOUD_EXEC_ASK", "1")
 
         assert check_cronjob_requirements() is True
 
     def test_rejects_when_no_session_env(self, monkeypatch):
         """Without any session env vars, cronjob tool should not be available."""
-        monkeypatch.delenv("HERMES_INTERACTIVE", raising=False)
-        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
+        monkeypatch.delenv("GPUCLOUD_INTERACTIVE", raising=False)
+        monkeypatch.delenv("GPUCLOUD_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("GPUCLOUD_EXEC_ASK", raising=False)
 
         assert check_cronjob_requirements() is False
 
     @pytest.mark.parametrize("false_like_value", ["0", "false", "no", "off"])
     def test_rejects_false_like_interactive_env(self, monkeypatch, false_like_value):
-        monkeypatch.setenv("HERMES_INTERACTIVE", false_like_value)
-        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
+        monkeypatch.setenv("GPUCLOUD_INTERACTIVE", false_like_value)
+        monkeypatch.delenv("GPUCLOUD_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("GPUCLOUD_EXEC_ASK", raising=False)
         assert check_cronjob_requirements() is False
 
     @pytest.mark.parametrize(
         "var_name",
-        ["HERMES_INTERACTIVE", "HERMES_GATEWAY_SESSION", "HERMES_EXEC_ASK"],
+        ["GPUCLOUD_INTERACTIVE", "GPUCLOUD_GATEWAY_SESSION", "GPUCLOUD_EXEC_ASK"],
     )
     @pytest.mark.parametrize("false_like_value", ["0", "false", "no", "off"])
     def test_rejects_false_like_any_session_env(
         self, monkeypatch, var_name, false_like_value
     ):
         """All three session env vars share the same truthy semantics."""
-        for v in ("HERMES_INTERACTIVE", "HERMES_GATEWAY_SESSION", "HERMES_EXEC_ASK"):
+        for v in ("GPUCLOUD_INTERACTIVE", "GPUCLOUD_GATEWAY_SESSION", "GPUCLOUD_EXEC_ASK"):
             monkeypatch.delenv(v, raising=False)
         monkeypatch.setenv(var_name, false_like_value)
         assert check_cronjob_requirements() is False

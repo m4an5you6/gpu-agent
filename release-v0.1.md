@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-02  
 **Repository:** [m4an5you6/gpu-agent](https://github.com/m4an5you6/gpu-agent)  
-**Base engine:** Hermes Agent (MIT), product surface rebranded to GPUCLOUD
+**Base engine:** GPUCLOUD Agent (MIT), product surface rebranded to GPUCLOUD
 
 ---
 
@@ -19,16 +19,16 @@
 
 ## Removed (documentation cleanup)
 
-This fork drops upstream Hermes **root / plan markdown** that does not apply to GPUCLOUD. Runtime code (`hermes_*.py`, `hermes_cli/`, package name `hermes-agent`) is unchanged for compatibility.
+This fork drops upstream GPUCLOUD **root / plan markdown** that does not apply to GPUCLOUD. Runtime code (`hermes_*.py`, `gpucloud_cli/`, package name `gpucloud-agent`) is unchanged for compatibility.
 
 **Replacement for releases:** this file (`release-v0.1.md`).  
 **Replacement for product overview:** [README.md](README.md) / [README.zh-CN.md](README.zh-CN.md).
 
-### Hermes release notes (14 files)
+### GPUCLOUD release notes (14 files)
 
 | Removed file | Notes |
 | --- | --- |
-| `RELEASE_v0.2.0.md` | Upstream Hermes v0.2.0 notes |
+| `RELEASE_v0.2.0.md` | Upstream GPUCLOUD v0.2.0 notes |
 | `RELEASE_v0.3.0.md` | v0.3.0 |
 | `RELEASE_v0.4.0.md` | v0.4.0 |
 | `RELEASE_v0.5.0.md` | v0.5.0 |
@@ -50,11 +50,11 @@ Future GPUCLOUD versions: add `release-v0.2.md`, etc., at repo root (same patter
 
 | Removed file | Former role | Where to look now |
 | --- | --- | --- |
-| `AGENTS.md` | Hermes developer guide for coding agents | GPUCLOUD scope in README; upstream copy still on [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent/blob/main/AGENTS.md) |
+| `AGENTS.md` | GPUCLOUD developer guide for coding agents | GPUCLOUD scope in README; upstream copy still on [NousResearch/gpucloud-agent](https://github.com/NousResearch/gpucloud-agent/blob/main/AGENTS.md) |
 | `CONTRIBUTING.md` | Nous dependency-pinning & PR policy | Not maintained in this fork |
 | `SECURITY.md` | Upstream security disclosure policy | Report engine issues upstream; follow GPUCLOUD safety notes in README / worker task examples |
 
-**Note:** Projects may still use a **local** `AGENTS.md` in their own repo; Hermes/GPUCLOUD can auto-inject that at runtime. Only the **fork’s root** `AGENTS.md` was removed.
+**Note:** Projects may still use a **local** `AGENTS.md` in their own repo; GPUCLOUD/GPUCLOUD can auto-inject that at runtime. Only the **fork’s root** `AGENTS.md` was removed.
 
 ### Marketing / internal plans (6 files)
 
@@ -70,21 +70,21 @@ Future GPUCLOUD versions: add `release-v0.2.md`, etc., at repo root (same patter
 
 ### README changes
 
-- Root README rewritten for GPUCLOUD (no longer a full duplicate of upstream Hermes README).
+- Root README rewritten for GPUCLOUD (no longer a full duplicate of upstream GPUCLOUD README).
 - Links only to `release-v0.1.md` for v0.1 docs (no separate `gpucloud-v0.1.md` in the release tree).
 
 ### Not removed in v0.1
 
-- `website/` — Hermes documentation site (large; may be trimmed in a later release).
-- Python modules and CLI named `hermes_*` / `hermes-agent` package.
+- `website/` — GPUCLOUD documentation site (large; may be trimmed in a later release).
+- Python modules and CLI named `hermes_*` / `gpucloud-agent` package.
 - `skills/`, `optional-skills/`, GPUCLOUD-specific skills under `skills/mlops/gpucloud-*`.
 
 ---
 
-## Breaking / product vs upstream Hermes
+## Breaking / product vs upstream GPUCLOUD
 
-- Default workflow no longer centers on messaging gateway, dashboard, or general-purpose `hermes` UX.
-- Use **`gpucloud`** as the primary CLI; `hermes` entry may still exist but is outside the default GPUCLOUD path.
+- Default workflow no longer centers on messaging gateway, dashboard, or general-purpose `gpucloud` UX.
+- Use **`gpucloud`** as the primary CLI; `gpucloud` entry may still exist but is outside the default GPUCLOUD path.
 
 ---
 
@@ -94,16 +94,16 @@ Future GPUCLOUD versions: add `release-v0.2.md`, etc., at repo root (same patter
 | --- | --- |
 | CLI | `gpucloud` command; cluster check, train, checkpoint, infer, worker subcommands |
 | Config | `gpucloud.yaml`, `gpucloud-worker-task.yaml.example` |
-| Worker runtime | Preflight, dry-run, start/stop with `--yes`, goal state under `~/.hermes/gpucloud/worker_goal_runs/` |
+| Worker runtime | Preflight, dry-run, start/stop with `--yes`, goal state under `~/.gpucloud/gpucloud/worker_goal_runs/` |
 | Agent tools | GPUCLOUD toolset (`gpucloud_worker_goal_run`, `gpucloud_goal_prepare`, …) |
-| Tests | `tests/hermes_cli/test_gpucloud_*.py` |
+| Tests | `tests/gpucloud_cli/test_gpucloud_*.py` |
 | Docs | `release-v0.1.md` (this file); `README.md` / `README.zh-CN.md` updated; **24** upstream markdown files removed (see **Removed** above) |
 
 ---
 
 ## Changed
 
-- Phase 1 rebrand from Hermes product surface to GPUCLOUD (`feat(cli): rebrand phase 1 to GPUCLOUD`).
+- Phase 1 rebrand from GPUCLOUD product surface to GPUCLOUD (`feat(cli): rebrand phase 1 to GPUCLOUD`).
 - Goal dry-run plans clarified for GPUCLOUD workflows.
 - GitHub Actions deploy/docs triggers disabled on this fork where appropriate.
 
@@ -114,7 +114,7 @@ Future GPUCLOUD versions: add `release-v0.2.md`, etc., at repo root (same patter
 - Worker preflight expects environment (venv, PyTorch, data, Megatron) to exist before `gpucloud_worker_goal_run`; agent often must bootstrap via skills first.
 - Coordinator must distribute task files; GPUCLOUD does not fan out SSH to all nodes in v0.1 worker runtime.
 - `training.command_template` and conversion templates are trusted coordinator input.
-- Python package name remains `hermes-agent` for module-path compatibility with upstream.
+- Python package name remains `gpucloud-agent` for module-path compatibility with upstream.
 
 ---
 
@@ -145,4 +145,4 @@ Approximate fork-specific history on `main` since rebrand:
 - `059834234` — disable automatic GitHub Actions triggers
 - `1078fd49c` — GPT-2 worker skills / session artifacts
 
-(Full `git log` still includes upstream Hermes history — see README FAQ below.)
+(Full `git log` still includes upstream GPUCLOUD history — see README FAQ below.)

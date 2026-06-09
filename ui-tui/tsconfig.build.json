@@ -3,7 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@hermes/ink": ["src/types/hermes-ink.d.ts"]
+      "@gpucloud/ink": ["src/types/gpucloud-ink.d.ts"]
     }
   }
 }

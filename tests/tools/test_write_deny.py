@@ -34,22 +34,22 @@ class TestWriteDenyExactPaths:
         path = os.path.join(str(Path.home()), ".netrc")
         assert _is_write_denied(path) is True
 
-    def test_hermes_env(self):
-        # ``.env`` under the active HERMES_HOME (profile-aware, not just
-        # ``~/.hermes``) must be write-denied. The hermetic test conftest
-        # points HERMES_HOME at a tempdir — resolve via get_hermes_home()
+    def test_gpucloud_env(self):
+        # ``.env`` under the active GPUCLOUD_HOME (profile-aware, not just
+        # ``~/.gpucloud``) must be write-denied. The hermetic test conftest
+        # points GPUCLOUD_HOME at a tempdir — resolve via get_gpucloud_home()
         # to match the denylist.
-        from hermes_constants import get_hermes_home
-        path = str(get_hermes_home() / ".env")
+        from gpucloud_constants import get_gpucloud_home
+        path = str(get_gpucloud_home() / ".env")
         assert _is_write_denied(path) is True
 
-    def test_hermes_root_env_when_running_under_profile(self, tmp_path, monkeypatch):
+    def test_gpucloud_root_env_when_running_under_profile(self, tmp_path, monkeypatch):
         """Top-level ``<root>/.env`` stays write-denied even when running under
         a profile (#15981).
 
         Before the fix, ``build_write_denied_paths`` only added
         ``<active_profile>/.env`` to the deny list, so the global
-        ``~/.hermes/.env`` (whose credentials are inherited by every profile)
+        ``~/.gpucloud/.env`` (whose credentials are inherited by every profile)
         could be silently overwritten by ``write_file`` while a profile was
         active.
         """
@@ -59,12 +59,12 @@ class TestWriteDenyExactPaths:
         global_env = root / ".env"
         global_env.write_text("OPENAI_API_KEY=sk-real\n")
 
-        monkeypatch.setenv("HERMES_HOME", str(profile_home))
+        monkeypatch.setenv("GPUCLOUD_HOME", str(profile_home))
 
-        # Sanity check: HERMES_HOME does point to the profile dir, not the root.
-        from hermes_constants import get_hermes_home, get_default_hermes_root
-        assert get_hermes_home() == profile_home
-        assert get_default_hermes_root() == root
+        # Sanity check: GPUCLOUD_HOME does point to the profile dir, not the root.
+        from gpucloud_constants import get_gpucloud_home, get_default_gpucloud_root
+        assert get_gpucloud_home() == profile_home
+        assert get_default_gpucloud_root() == root
 
         assert _is_write_denied(str(global_env)) is True
 
@@ -124,6 +124,6 @@ class TestWriteAllowed:
     def test_project_file(self):
         assert _is_write_denied("/home/user/project/main.py") is False
 
-    def test_hermes_config_not_env(self):
-        path = os.path.join(str(Path.home()), ".hermes", "config.yaml")
+    def test_gpucloud_config_not_env(self):
+        path = os.path.join(str(Path.home()), ".gpucloud", "config.yaml")
         assert _is_write_denied(path) is False

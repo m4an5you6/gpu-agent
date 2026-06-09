@@ -1,11 +1,11 @@
 """Regression for #21454: re-running install.sh on a symlinked prior install.
 
 Older versions of ``install.sh`` created ``$command_link_dir/hermes`` as a
-symlink to the pip-generated entry point at ``$HERMES_BIN`` (i.e.
-``venv/bin/hermes``). When ``setup_path()`` later switched to writing a bash
+symlink to the pip-generated entry point at ``$GPUCLOUD_BIN`` (i.e.
+``venv/bin/gpucloud``). When ``setup_path()`` later switched to writing a bash
 shim with ``cat > "$command_link_dir/hermes" <<EOF``, the redirect followed
 the existing symlink and overwrote the pip entry point with the shim. The
-shim's ``exec "$HERMES_BIN" "$@"`` then self-recursed and ``hermes`` hung on
+shim's ``exec "$GPUCLOUD_BIN" "$@"`` then self-recursed and ``gpucloud`` hung on
 every invocation.
 
 These tests pin the fix: ``setup_path()`` must remove ``$command_link_dir/hermes``
@@ -64,26 +64,26 @@ def test_re_running_setup_path_block_preserves_pip_entry_point(tmp_path: Path) -
     Layout mirrors a real install:
 
         tmp/
-          venv/bin/hermes        <- pip entry point (the one we must preserve)
-          local_bin/hermes       <- symlink → ../venv/bin/hermes  (old install)
+          venv/bin/gpucloud        <- pip entry point (the one we must preserve)
+          local_bin/hermes       <- symlink → ../venv/bin/gpucloud  (old install)
 
     Then we run the exact shim-write block from setup_path() with
-    ``HERMES_BIN`` and ``command_link_dir`` pointed at this fixture. The fix
+    ``GPUCLOUD_BIN`` and ``command_link_dir`` pointed at this fixture. The fix
     requires that, after the run:
 
-      * ``venv/bin/hermes`` still contains its original pip-script body
+      * ``venv/bin/gpucloud`` still contains its original pip-script body
       * ``local_bin/hermes`` is a regular file (not a symlink) holding the shim
     """
     venv_bin = tmp_path / "venv" / "bin"
     venv_bin.mkdir(parents=True)
-    pip_entry = venv_bin / "hermes"
+    pip_entry = venv_bin / "gpucloud"
     pip_marker = "#!/usr/bin/env python\n# pip-generated entry point — must not be overwritten\n"
     pip_entry.write_text(pip_marker)
     pip_entry.chmod(pip_entry.stat().st_mode | stat.S_IXUSR)
 
     command_link_dir = tmp_path / "local_bin"
     command_link_dir.mkdir()
-    shim_path = command_link_dir / "hermes"
+    shim_path = command_link_dir / "gpucloud"
     # Reproduce the prior-install state: shim path is a symlink to the
     # pip-generated entry point.
     shim_path.symlink_to(pip_entry)
@@ -91,7 +91,7 @@ def test_re_running_setup_path_block_preserves_pip_entry_point(tmp_path: Path) -
 
     block = _extract_setup_path_shim_block()
     # Drive the block with the real env vars setup_path() sets.
-    script = f'set -e\nHERMES_BIN={pip_entry!s}\ncommand_link_dir={command_link_dir!s}\n{block}\n'
+    script = f'set -e\nGPUCLOUD_BIN={pip_entry!s}\ncommand_link_dir={command_link_dir!s}\n{block}\n'
     result = subprocess.run(
         ["bash", "-c", script],
         capture_output=True,
@@ -105,7 +105,7 @@ def test_re_running_setup_path_block_preserves_pip_entry_point(tmp_path: Path) -
     # The pip entry point must still be the original pip script — not a
     # re-written self-recursing bash shim.
     assert pip_entry.read_text() == pip_marker, (
-        "venv/bin/hermes was overwritten by setup_path() — symlink-stomp "
+        "venv/bin/gpucloud was overwritten by setup_path() — symlink-stomp "
         "regression (#21454)."
     )
 

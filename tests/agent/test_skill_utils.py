@@ -10,10 +10,10 @@ from agent.skill_utils import (
 
 
 def test_metadata_as_dict_with_hermes():
-    """Normal case: metadata is a dict containing hermes keys."""
+    """Normal case: metadata is a dict containing gpucloud keys."""
     frontmatter = {
         "metadata": {
-            "hermes": {
+            "gpucloud": {
                 "fallback_for_toolsets": ["toolset_a"],
                 "requires_toolsets": ["toolset_b"],
                 "fallback_for_tools": ["tool_x"],

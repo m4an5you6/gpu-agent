@@ -14,7 +14,7 @@ Publish static sites to &#123;slug&#125;.here.now and store private files in clo
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/productivity/here-now` |
+| Source | Optional — install with `gpucloud skills install official/productivity/here-now` |
 | Path | `optional-skills/productivity/here-now` |
 | Version | `1.15.3` |
 | Author | here.now |
@@ -25,7 +25,7 @@ Publish static sites to &#123;slug&#125;.here.now and store private files in clo
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that GPUCLOUD loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # here.now
@@ -74,13 +74,13 @@ If the docs fetch fails or times out, continue with the local skill and live API
 - Optional Drive token variable: `$HERENOW_DRIVE_TOKEN`
 - Optional credentials file: `~/.herenow/credentials`
 - Skill helper paths:
-  - `${HERMES_SKILL_DIR}/scripts/publish.sh` for publishing sites
-  - `${HERMES_SKILL_DIR}/scripts/drive.sh` for private Drive storage
+  - `${GPUCLOUD_SKILL_DIR}/scripts/publish.sh` for publishing sites
+  - `${GPUCLOUD_SKILL_DIR}/scripts/drive.sh` for private Drive storage
 
 ## Create a site
 
 ```bash
-PUBLISH="${HERMES_SKILL_DIR}/scripts/publish.sh"
+PUBLISH="${GPUCLOUD_SKILL_DIR}/scripts/publish.sh"
 bash "$PUBLISH" {file-or-dir} --client hermes
 ```
 
@@ -98,7 +98,7 @@ You can also publish raw files without any HTML. Single files get a rich auto-vi
 ## Update an existing site
 
 ```bash
-PUBLISH="${HERMES_SKILL_DIR}/scripts/publish.sh"
+PUBLISH="${GPUCLOUD_SKILL_DIR}/scripts/publish.sh"
 bash "$PUBLISH" {file-or-dir} --slug {slug} --client hermes
 ```
 
@@ -113,7 +113,7 @@ Use a Drive when the user wants private cloud storage for agent files: documents
 Every signed-in account has a default Drive named `My Drive`.
 
 ```bash
-DRIVE="${HERMES_SKILL_DIR}/scripts/drive.sh"
+DRIVE="${GPUCLOUD_SKILL_DIR}/scripts/drive.sh"
 bash "$DRIVE" default
 bash "$DRIVE" ls "My Drive"
 bash "$DRIVE" put "My Drive" notes/today.md --from ./notes/today.md
@@ -215,7 +215,7 @@ For Drives:
 | `--title {text}`       | Viewer title (non-HTML sites)             |
 | `--description {text}` | Viewer description                            |
 | `--ttl {seconds}`      | Set expiry (authenticated only)               |
-| `--client {name}`      | Agent name for attribution (e.g. `hermes`)    |
+| `--client {name}`      | Agent name for attribution (e.g. `gpucloud`)    |
 | `--base-url {url}`     | API base URL (default: `https://here.now`)    |
 | `--allow-nonherenow-base-url` | Allow sending auth to non-default `--base-url` |
 | `--api-key {key}`      | API key override (prefer credentials file)    |

@@ -21,7 +21,7 @@ description: "托管模组 Minecraft 服务器（CurseForge、Modrinth）"
 ## 参考：完整 SKILL.md
 
 :::info
-以下是 Hermes 在触发该技能时加载的完整技能定义。这是技能激活时 Agent 所看到的指令内容。
+以下是 GPUCLOUD 在触发该技能时加载的完整技能定义。这是技能激活时 Agent 所看到的指令内容。
 :::
 
 # Minecraft 模组包服务器配置

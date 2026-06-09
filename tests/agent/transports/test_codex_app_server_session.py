@@ -490,7 +490,7 @@ class TestServerRequestRouting:
         )
 
     def test_mcp_elicitation_for_hermes_tools_auto_accepts(self):
-        """When codex elicits on behalf of hermes-tools (our own callback),
+        """When codex elicits on behalf of gpucloud-tools (our own callback),
         accept automatically — the user already opted in by enabling the
         runtime."""
         client = FakeClient()

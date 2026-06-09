@@ -25,12 +25,12 @@ description: "知识漫画：教育、传记、教程"
 ## 参考：完整 SKILL.md
 
 :::info
-以下是 Hermes 在触发此 skill 时加载的完整 skill 定义。这是 agent 在 skill 激活时所看到的指令内容。
+以下是 GPUCLOUD 在触发此 skill 时加载的完整 skill 定义。这是 agent 在 skill 激活时所看到的指令内容。
 :::
 
 # 知识漫画创作器
 
-改编自 [baoyu-comic](https://github.com/JimLiu/baoyu-skills)，适配 Hermes Agent 的工具生态系统。
+改编自 [baoyu-comic](https://github.com/JimLiu/baoyu-skills)，适配 GPUCLOUD Agent 的工具生态系统。
 
 创作具有灵活艺术风格 × 基调组合的原创知识漫画。
 
@@ -40,7 +40,7 @@ description: "知识漫画：教育、传记、教程"
 
 ## 参考图片
 
-Hermes 的 `image_generate` 工具**仅接受 prompt（提示词）**——它接受文本 prompt 和宽高比，并返回图片 URL。它**不**接受参考图片。当用户提供参考图片时，将其用于**以文字提取特征**，并嵌入每页 prompt 中：
+GPUCLOUD 的 `image_generate` 工具**仅接受 prompt（提示词）**——它接受文本 prompt 和宽高比，并返回图片 URL。它**不**接受参考图片。当用户提供参考图片时，将其用于**以文字提取特征**，并嵌入每页 prompt 中：
 
 **接收方式**：当用户提供文件路径时接受（或在对话中粘贴图片）。
 - 文件路径 → 复制到漫画输出目录下的 `refs/NN-ref-{slug}.{ext}`，用于溯源
@@ -89,7 +89,7 @@ references:
 | 仅图片 | 从现有 prompts 目录生成图片 |
 | 重新生成第 N 页 | 仅重新生成指定页面（如 `3` 或 `2,5,8`） |
 
-详情：[references/partial-workflows.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md)
+详情：[references/partial-workflows.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md)
 
 ### 艺术风格、基调与预设目录
 
@@ -107,7 +107,7 @@ references:
 
   完整规则见 `references/presets/<preset>.md`——选择预设时加载对应文件。
 
-- **兼容性矩阵**和**内容信号 → 预设**对照表见 [references/auto-selection.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/auto-selection.md)。在步骤 2 推荐组合前请先阅读。
+- **兼容性矩阵**和**内容信号 → 预设**对照表见 [references/auto-selection.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/auto-selection.md)。在步骤 2 推荐组合前请先阅读。
 
 ## 文件结构
 
@@ -185,7 +185,7 @@ Input → Analyze → [Check Existing?] → [Confirm: Style + Reviews] → Story
 
 ### 用户问题
 
-使用 `clarify` 工具确认选项。由于 `clarify` 每次只处理一个问题，请先提出最重要的问题，然后依次进行。完整的步骤 2 问题集见 [references/workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md)。
+使用 `clarify` 工具确认选项。由于 `clarify` 每次只处理一个问题，请先提出最重要的问题，然后依次进行。完整的步骤 2 问题集见 [references/workflow.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md)。
 
 **超时处理（关键）**：`clarify` 可能返回 `"The user did not provide a response within the time limit. Use your best judgement to make the choice and proceed."` ——这**不是**用户对所有选项使用默认值的同意。
 
@@ -195,7 +195,7 @@ Input → Analyze → [Check Existing?] → [Confirm: Style + Reviews] → Story
 
 ### 步骤 7：图片生成
 
-所有图片渲染均使用 Hermes 内置的 `image_generate` 工具。其 schema 仅接受 `prompt` 和 `aspect_ratio`（`landscape` | `portrait` | `square`）；它**返回 URL**，而非本地文件。因此，每张生成的页面或角色表都必须下载到输出目录。
+所有图片渲染均使用 GPUCLOUD 内置的 `image_generate` 工具。其 schema 仅接受 `prompt` 和 `aspect_ratio`（`landscape` | `portrait` | `square`）；它**返回 URL**，而非本地文件。因此，每张生成的页面或角色表都必须下载到输出目录。
 
 **Prompt 文件要求（硬性规定）**：在调用 `image_generate` 之前，必须将每张图片的完整最终 prompt 写入 `prompts/` 下的独立文件（命名规则：`NN-{type}-[slug].md`）。Prompt 文件是可复现性记录。
 
@@ -221,15 +221,15 @@ Input → Analyze → [Check Existing?] → [Confirm: Style + Reviews] → Story
 
 **备份规则**：现有的 `prompts/…md` 和 `…png` 文件 → 在重新生成前，以 `-backup-YYYYMMDD-HHMMSS` 后缀重命名。
 
-完整的逐步工作流（分析、分镜、审阅节点、重新生成变体）：[references/workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md)。
+完整的逐步工作流（分析、分镜、审阅节点、重新生成变体）：[references/workflow.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md)。
 
 ## 参考资料
 
 **核心模板**：
-- [analysis-framework.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/analysis-framework.md) - 深度内容分析
-- [character-template.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/character-template.md) - 角色定义格式
-- [storyboard-template.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/storyboard-template.md) - 分镜结构
-- [ohmsha-guide.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/ohmsha-guide.md) - Ohmsha manga 细节
+- [analysis-framework.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/analysis-framework.md) - 深度内容分析
+- [character-template.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/character-template.md) - 角色定义格式
+- [storyboard-template.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/storyboard-template.md) - 分镜结构
+- [ohmsha-guide.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/ohmsha-guide.md) - Ohmsha manga 细节
 
 **风格定义**：
 - `references/art-styles/` - 艺术风格（ligne-claire、manga、realistic、ink-brush、chalk、minimalist）
@@ -238,9 +238,9 @@ Input → Analyze → [Check Existing?] → [Confirm: Style + Reviews] → Story
 - `references/layouts/` - 版式（standard、cinematic、dense、splash、mixed、webtoon、four-panel）
 
 **工作流**：
-- [workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md) - 完整工作流详情
-- [auto-selection.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/auto-selection.md) - 内容信号分析
-- [partial-workflows.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md) - 部分工作流选项
+- [workflow.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md) - 完整工作流详情
+- [auto-selection.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/auto-selection.md) - 内容信号分析
+- [partial-workflows.md](https://github.com/NousResearch/gpucloud-agent/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md) - 部分工作流选项
 
 ## 页面修改
 

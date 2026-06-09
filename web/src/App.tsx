@@ -543,7 +543,7 @@ export default function App() {
                   className="font-bold text-[1.125rem] leading-[0.95] tracking-[0.0525rem] text-midground uppercase"
                   style={{ mixBlendMode: "plus-lighter" }}
                 >
-                  Hermes
+                  GPUCLOUD
                   <br />
                   Agent
                 </Typography>
@@ -854,8 +854,8 @@ function SidebarSystemActions({
     {
       action: "update",
       icon: Download,
-      label: t.status.updateHermes,
-      runningLabel: t.status.updatingHermes,
+      label: t.status.updateGPUCLOUD,
+      runningLabel: t.status.updatingGPUCLOUD,
       spin: false,
     },
   ];

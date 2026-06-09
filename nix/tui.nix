@@ -1,4 +1,4 @@
-# nix/tui.nix — Hermes TUI (Ink/React) compiled with tsc and bundled
+# nix/tui.nix — GPUCLOUD TUI (Ink/React) compiled with tsc and bundled
 { pkgs, hermesNpmLib, ... }:
 let
   src = ../ui-tui;
@@ -22,13 +22,13 @@ pkgs.buildNpmPackage (npm // {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/lib/hermes-tui
+    mkdir -p $out/lib/gpucloud-tui
 
     # Single self-contained bundle built by scripts/build.mjs (esbuild).
-    cp -r dist $out/lib/hermes-tui/dist
+    cp -r dist $out/lib/gpucloud-tui/dist
 
     # package.json kept for "type": "module" resolution on `node dist/entry.js`.
-    cp package.json $out/lib/hermes-tui/
+    cp package.json $out/lib/gpucloud-tui/
 
     runHook postInstall
   '';

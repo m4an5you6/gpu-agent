@@ -38,13 +38,13 @@ class TestIRCProtocolHelpers:
         assert msg["params"] == ["#channel", "Hello world"]
 
     def test_parse_numeric_reply(self):
-        msg = _parse_irc_message(":server 001 hermes-bot :Welcome to IRC")
+        msg = _parse_irc_message(":server 001 gpucloud-bot :Welcome to IRC")
         assert msg["prefix"] == "server"
         assert msg["command"] == "001"
         assert msg["params"] == ["hermes-bot", "Welcome to IRC"]
 
     def test_parse_nick_collision(self):
-        msg = _parse_irc_message(":server 433 * hermes-bot :Nickname is already in use")
+        msg = _parse_irc_message(":server 433 * gpucloud-bot :Nickname is already in use")
         assert msg["command"] == "433"
 
     def test_extract_nick_full_prefix(self):
@@ -87,7 +87,7 @@ class TestIRCAdapterInit:
             extra={
                 "server": "irc.libera.chat",
                 "port": 6697,
-                "nickname": "hermes",
+                "nickname": "gpucloud",
                 "channel": "#hermes-dev",
                 "use_tls": True,
             },
@@ -96,7 +96,7 @@ class TestIRCAdapterInit:
 
         assert adapter.server == "irc.libera.chat"
         assert adapter.port == 6697
-        assert adapter.nickname == "hermes"
+        assert adapter.nickname == "gpucloud"
         assert adapter.channel == "#hermes-dev"
         assert adapter.use_tls is True
 
@@ -180,13 +180,13 @@ class TestIRCAdapterMessageParsing:
             extra={
                 "server": "localhost",
                 "port": 6667,
-                "nickname": "hermes",
+                "nickname": "gpucloud",
                 "channel": "#test",
                 "use_tls": False,
             },
         )
         a = IRCAdapter(cfg)
-        a._current_nick = "hermes"
+        a._current_nick = "gpucloud"
         a._registered = True
         return a
 
@@ -207,7 +207,7 @@ class TestIRCAdapterMessageParsing:
         adapter._registered = False
         adapter._registration_event = asyncio.Event()
 
-        await adapter._handle_line(":server 001 hermes :Welcome to IRC")
+        await adapter._handle_line(":server 001 gpucloud :Welcome to IRC")
         assert adapter._registered is True
         assert adapter._registration_event.is_set()
 
@@ -219,7 +219,7 @@ class TestIRCAdapterMessageParsing:
         writer.drain = AsyncMock()
         adapter._writer = writer
 
-        await adapter._handle_line(":server 433 * hermes :Nickname in use")
+        await adapter._handle_line(":server 433 * gpucloud :Nickname in use")
         assert adapter._current_nick == "hermes_"
         sent = writer.write.call_args[0][0]
         assert b"NICK hermes_" in sent
@@ -268,7 +268,7 @@ class TestIRCAdapterMessageParsing:
         adapter._dispatch_message = capture_dispatch
         adapter._message_handler = AsyncMock()
 
-        await adapter._handle_line(":user!u@host PRIVMSG hermes :private message")
+        await adapter._handle_line(":user!u@host PRIVMSG gpucloud :private message")
         assert len(dispatched) == 1
         assert dispatched[0]["text"] == "private message"
         assert dispatched[0]["chat_type"] == "dm"
@@ -298,7 +298,7 @@ class TestIRCAdapterMessageParsing:
         adapter._dispatch_message = capture_dispatch
         adapter._message_handler = AsyncMock()
 
-        await adapter._handle_line(":user!u@host PRIVMSG hermes :\x01ACTION waves\x01")
+        await adapter._handle_line(":user!u@host PRIVMSG gpucloud :\x01ACTION waves\x01")
         assert len(dispatched) == 1
         assert dispatched[0]["text"] == "* user waves"
 
@@ -313,14 +313,14 @@ class TestIRCAdapterMessageParsing:
             extra={
                 "server": "localhost",
                 "port": 6667,
-                "nickname": "hermes",
+                "nickname": "gpucloud",
                 "channel": "#test",
                 "use_tls": False,
                 "allowed_users": ["Admin", "BOB"],
             },
         )
         adapter = IRCAdapter(cfg)
-        adapter._current_nick = "hermes"
+        adapter._current_nick = "gpucloud"
         adapter._registered = True
         dispatched = []
 
@@ -346,14 +346,14 @@ class TestIRCAdapterMessageParsing:
             extra={
                 "server": "localhost",
                 "port": 6667,
-                "nickname": "hermes",
+                "nickname": "gpucloud",
                 "channel": "#test",
                 "use_tls": False,
                 "allowed_users": ["Admin", "BOB"],
             },
         )
         adapter = IRCAdapter(cfg)
-        adapter._current_nick = "hermes"
+        adapter._current_nick = "gpucloud"
         adapter._registered = True
         dispatched = []
 
@@ -375,7 +375,7 @@ class TestIRCAdapterMessageParsing:
         writer.drain = AsyncMock()
         adapter._writer = writer
 
-        await adapter._handle_line(":server 433 * hermes :Nickname in use")
+        await adapter._handle_line(":server 433 * gpucloud :Nickname in use")
         assert adapter._current_nick == "hermes_"
         await adapter._handle_line(":server 433 * hermes_ :Nickname in use")
         assert adapter._current_nick == "hermes_1"
@@ -581,7 +581,7 @@ class TestIRCStandaloneSend:
         # NICK uses the cron-suffixed identity to avoid colliding with the
         # long-running gateway adapter that may already hold the nickname.
         assert any(line.startswith("NICK hermesbot-cron") for line in sent_lines)
-        assert any(line.startswith("USER hermesbot-cron 0 * :Hermes Agent (cron)")
+        assert any(line.startswith("USER hermesbot-cron 0 * :GPUCLOUD Agent (cron)")
                    for line in sent_lines)
         assert any(line == "PRIVMSG #cron :hello from cron" for line in sent_lines)
         assert any(line.startswith("QUIT ") for line in sent_lines)

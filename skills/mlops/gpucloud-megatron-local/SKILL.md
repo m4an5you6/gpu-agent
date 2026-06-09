@@ -80,7 +80,7 @@ triggers:
 - `data_path_readable`: checks `data_path.exists()` — must be file or directory
 - `megatron_entrypoint`: checks `pretrain_gpt.py` exists at `megatron_lm_dir`
 - `torch_import`: runs python from `runtime.python` path
-- Goal state file at `~/.hermes/gpucloud/worker_goal_runs/{job_id}.json`
+- Goal state file at `~/.gpucloud/gpucloud/worker_goal_runs/{job_id}.json`
 - Terminal stages (`training_failed`, `conversion_failed`, `completed`) block re-runs
 - Reset by overwriting state file with `"stage": "preflight"`
 

@@ -8,20 +8,20 @@ class TestResolveApiKey:
 
     def test_returns_api_key_from_root(self, monkeypatch):
         import plugins.memory.honcho.cli as honcho_cli
-        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "hermes")
+        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "gpucloud")
         monkeypatch.delenv("HONCHO_API_KEY", raising=False)
         assert honcho_cli._resolve_api_key({"apiKey": "root-key"}) == "root-key"
 
     def test_returns_api_key_from_host_block(self, monkeypatch):
         import plugins.memory.honcho.cli as honcho_cli
-        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "hermes")
+        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "gpucloud")
         monkeypatch.delenv("HONCHO_API_KEY", raising=False)
-        cfg = {"hosts": {"hermes": {"apiKey": "host-key"}}, "apiKey": "root-key"}
+        cfg = {"hosts": {"gpucloud": {"apiKey": "host-key"}}, "apiKey": "root-key"}
         assert honcho_cli._resolve_api_key(cfg) == "host-key"
 
     def test_returns_local_for_base_url_without_api_key(self, monkeypatch):
         import plugins.memory.honcho.cli as honcho_cli
-        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "hermes")
+        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "gpucloud")
         monkeypatch.delenv("HONCHO_API_KEY", raising=False)
         monkeypatch.delenv("HONCHO_BASE_URL", raising=False)
         cfg = {"baseUrl": "http://localhost:8000"}
@@ -29,14 +29,14 @@ class TestResolveApiKey:
 
     def test_returns_local_for_base_url_env_var(self, monkeypatch):
         import plugins.memory.honcho.cli as honcho_cli
-        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "hermes")
+        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "gpucloud")
         monkeypatch.delenv("HONCHO_API_KEY", raising=False)
         monkeypatch.setenv("HONCHO_BASE_URL", "http://10.0.0.5:8000")
         assert honcho_cli._resolve_api_key({}) == "local"
 
     def test_returns_empty_when_nothing_configured(self, monkeypatch):
         import plugins.memory.honcho.cli as honcho_cli
-        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "hermes")
+        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "gpucloud")
         monkeypatch.delenv("HONCHO_API_KEY", raising=False)
         monkeypatch.delenv("HONCHO_BASE_URL", raising=False)
         assert honcho_cli._resolve_api_key({}) == ""
@@ -44,7 +44,7 @@ class TestResolveApiKey:
     def test_rejects_garbage_base_url_without_scheme(self, monkeypatch):
         """Obvious non-URL literals in baseUrl (typos) must not pass the guard."""
         import plugins.memory.honcho.cli as honcho_cli
-        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "hermes")
+        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "gpucloud")
         monkeypatch.delenv("HONCHO_API_KEY", raising=False)
         monkeypatch.delenv("HONCHO_BASE_URL", raising=False)
         # Boolean literals, pure digits, and bare identifiers without
@@ -64,7 +64,7 @@ class TestResolveApiKey:
         parsed scheme explicitly.
         """
         import plugins.memory.honcho.cli as honcho_cli
-        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "hermes")
+        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "gpucloud")
         monkeypatch.delenv("HONCHO_API_KEY", raising=False)
         monkeypatch.delenv("HONCHO_BASE_URL", raising=False)
         # file:/// parses with scheme='file' but empty netloc, so the
@@ -77,7 +77,7 @@ class TestResolveApiKey:
 
     def test_accepts_https_base_url(self, monkeypatch):
         import plugins.memory.honcho.cli as honcho_cli
-        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "hermes")
+        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "gpucloud")
         monkeypatch.delenv("HONCHO_API_KEY", raising=False)
         monkeypatch.delenv("HONCHO_BASE_URL", raising=False)
         assert honcho_cli._resolve_api_key({"baseUrl": "https://honcho.example.com"}) == "local"
@@ -92,7 +92,7 @@ class TestResolveApiKey:
         The SDK itself still rejects malformed URLs at connect time.
         """
         import plugins.memory.honcho.cli as honcho_cli
-        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "hermes")
+        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "gpucloud")
         monkeypatch.delenv("HONCHO_API_KEY", raising=False)
         monkeypatch.delenv("HONCHO_BASE_URL", raising=False)
         for legacy in ("localhost:8000", "10.0.0.5:8000", "honcho.local:8080", "host.example.com"):
@@ -110,10 +110,10 @@ class TestCmdStatus:
         class FakeConfig:
             enabled = True
             api_key = "root-key"
-            workspace_id = "hermes"
-            host = "hermes"
+            workspace_id = "gpucloud"
+            host = "gpucloud"
             base_url = None
-            ai_peer = "hermes"
+            ai_peer = "gpucloud"
             peer_name = "eri"
             recall_mode = "hybrid"
             user_observe_me = True
@@ -128,7 +128,7 @@ class TestCmdStatus:
             reasoning_heuristic = True
 
             def resolve_session_name(self):
-                return "hermes"
+                return "gpucloud"
 
         monkeypatch.setattr(honcho_cli, "_read_config", lambda: {"apiKey": "***"})
         monkeypatch.setattr(honcho_cli, "_config_path", lambda: cfg_path)
@@ -183,7 +183,7 @@ class TestCloneHonchoForProfile:
         cfg = {
             "apiKey": "***",
             "hosts": {
-                "hermes": {
+                "gpucloud": {
                     "userPeerAliases": {"86701400": "eri", "discord-491827364": "eri"},
                     "peerName": "eri",
                 },
@@ -199,7 +199,7 @@ class TestCloneHonchoForProfile:
         cfg = {
             "apiKey": "***",
             "hosts": {
-                "hermes": {
+                "gpucloud": {
                     "runtimePeerPrefix": "telegram_",
                     "peerName": "eri",
                 },
@@ -215,7 +215,7 @@ class TestCloneHonchoForProfile:
         cfg = {
             "apiKey": "***",
             "hosts": {
-                "hermes": {
+                "gpucloud": {
                     "pinPeerName": True,
                     "peerName": "eri",
                 },
@@ -230,7 +230,7 @@ class TestCloneHonchoForProfile:
     def test_unset_identity_keys_do_not_appear_in_cloned_profile(self, monkeypatch, tmp_path):
         cfg = {
             "apiKey": "***",
-            "hosts": {"hermes": {"peerName": "eri"}},
+            "hosts": {"gpucloud": {"peerName": "eri"}},
         }
         honcho_cli, written = self._setup_clone_env(monkeypatch, tmp_path, cfg)
         ok = honcho_cli.clone_honcho_for_profile("coder")
@@ -264,22 +264,22 @@ class TestSetupWizardDeploymentShape:
         monkeypatch.setattr(honcho_cli, "_read_config", lambda: cfg)
         monkeypatch.setattr(honcho_cli, "_config_path", lambda: cfg_path)
         monkeypatch.setattr(honcho_cli, "_local_config_path", lambda: cfg_path)
-        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "hermes")
+        monkeypatch.setattr(honcho_cli, "_host_key", lambda: "gpucloud")
         monkeypatch.setattr(honcho_cli, "_ensure_sdk_installed", lambda: True)
         monkeypatch.setattr(honcho_cli, "_write_config", lambda *a, **k: None)
 
         # Bypass config.yaml + connection test side effects.
         monkeypatch.setattr(
-            "hermes_cli.config.load_config", lambda: {"memory": {}}, raising=False,
+            "gpucloud_cli.config.load_config", lambda: {"memory": {}}, raising=False,
         )
         monkeypatch.setattr(
-            "hermes_cli.config.save_config", lambda c: None, raising=False,
+            "gpucloud_cli.config.save_config", lambda c: None, raising=False,
         )
 
         class _FakeClientCfg:
             def resolve_session_name(self):
                 return "hermes-test"
-            workspace_id = "hermes"
+            workspace_id = "gpucloud"
             peer_name = "eri"
             ai_peer = "hermetika"
             observation_mode = "directional"
@@ -310,7 +310,7 @@ class TestSetupWizardDeploymentShape:
         monkeypatch.setattr(honcho_cli, "_prompt", _scripted_prompt)
 
         honcho_cli.cmd_setup(SimpleNamespace())
-        return cfg["hosts"]["hermes"]
+        return cfg["hosts"]["gpucloud"]
 
     def test_single_shape_sets_pin_peer_name_and_clears_aliases(self, monkeypatch, tmp_path):
         answers = [
@@ -318,13 +318,13 @@ class TestSetupWizardDeploymentShape:
             "",                # api key (keep)
             "eri",             # peer name
             "hermetika",       # ai peer
-            "hermes",          # workspace
+            "gpucloud",          # workspace
             "single",          # deployment shape ← key answer
             # remaining prompts fall through to defaults
         ]
         initial_cfg = {
             "apiKey": "***",
-            "hosts": {"hermes": {
+            "hosts": {"gpucloud": {
                 "userPeerAliases": {"old": "stale"},
                 "runtimePeerPrefix": "old_",
             }},
@@ -340,7 +340,7 @@ class TestSetupWizardDeploymentShape:
             "",                # api key (keep)
             "eri",             # peer name
             "hermetika",       # ai peer
-            "hermes",          # workspace
+            "gpucloud",          # workspace
             "multi",           # deployment shape
             "telegram_",       # runtime peer prefix
         ]
@@ -358,7 +358,7 @@ class TestSetupWizardDeploymentShape:
             "",                # api key (keep)
             "eri",             # peer name
             "hermetika",       # ai peer
-            "hermes",          # workspace
+            "gpucloud",          # workspace
             "hybrid",          # deployment shape
             "86701400",        # telegram uid
             "491827364",       # discord snowflake
@@ -377,14 +377,14 @@ class TestSetupWizardDeploymentShape:
     def test_skip_shape_preserves_existing_identity_config(self, monkeypatch, tmp_path):
         initial_cfg = {
             "apiKey": "***",
-            "hosts": {"hermes": {
+            "hosts": {"gpucloud": {
                 "pinPeerName": True,
                 "userPeerAliases": {"keep": "me"},
                 "runtimePeerPrefix": "keep_",
             }},
         }
         answers = [
-            "cloud", "", "eri", "hermetika", "hermes", "skip",
+            "cloud", "", "eri", "hermetika", "gpucloud", "skip",
         ]
         host = self._run_setup(monkeypatch, tmp_path, answers=answers, initial_cfg=initial_cfg)
         assert host["pinPeerName"] is True
@@ -398,14 +398,14 @@ class TestSetupWizardDeploymentShape:
         """
         initial_cfg = {
             "apiKey": "***",
-            "hosts": {"hermes": {"pinPeerName": True, "peerName": "eri"}},
+            "hosts": {"gpucloud": {"pinPeerName": True, "peerName": "eri"}},
         }
         answers = [
             "cloud",           # deployment
             "",                # api key (keep)
             "eri",             # peer name
             "hermetika",       # ai peer
-            "hermes",          # workspace
+            "gpucloud",          # workspace
             "multi",           # deployment shape — triggers the guard
             "hybrid",          # guard response: accept the steer
             "86701400",        # telegram uid
@@ -424,10 +424,10 @@ class TestSetupWizardDeploymentShape:
         """
         initial_cfg = {
             "apiKey": "***",
-            "hosts": {"hermes": {"pinPeerName": True, "peerName": "eri"}},
+            "hosts": {"gpucloud": {"pinPeerName": True, "peerName": "eri"}},
         }
         answers = [
-            "cloud", "", "eri", "hermetika", "hermes",
+            "cloud", "", "eri", "hermetika", "gpucloud",
             "multi",           # deployment shape — triggers the guard
             "yes",             # guard response: confirm multi
             "telegram_",       # runtime peer prefix
@@ -448,13 +448,13 @@ class TestSetupWizardDeploymentShape:
         """
         initial_cfg = {
             "apiKey": "***",
-            "hosts": {"hermes": {"pinUserPeer": True, "peerName": "eri"}},
+            "hosts": {"gpucloud": {"pinUserPeer": True, "peerName": "eri"}},
         }
         # Exhaust the iterator before the shape prompt so the scripted
         # mock falls through to the prompt's default (which is the
         # wizard-detected shape).  Scripting an explicit "" would NOT
         # exercise that fallthrough — the mock returns it literally.
-        answers = ["cloud", "", "eri", "hermetika", "hermes"]
+        answers = ["cloud", "", "eri", "hermetika", "gpucloud"]
         host = self._run_setup(monkeypatch, tmp_path, answers=answers, initial_cfg=initial_cfg)
         # Scrub-then-write normalises onto pinPeerName and drops the alias
         # so resolver precedence can't reintroduce ambiguity.
@@ -471,13 +471,13 @@ class TestSetupWizardDeploymentShape:
         """
         initial_cfg = {
             "apiKey": "***",
-            "hosts": {"hermes": {
+            "hosts": {"gpucloud": {
                 "pinUserPeer": False,
                 "pinPeerName": True,
                 "peerName": "eri",
             }},
         }
-        answers = ["cloud", "", "eri", "hermetika", "hermes"]
+        answers = ["cloud", "", "eri", "hermetika", "gpucloud"]
         host = self._run_setup(monkeypatch, tmp_path, answers=answers, initial_cfg=initial_cfg)
         assert host["pinPeerName"] is False
         assert "pinUserPeer" not in host
@@ -489,9 +489,9 @@ class TestSetupWizardDeploymentShape:
         initial_cfg = {
             "apiKey": "***",
             "userPeerAliases": {"86701400": "eri"},
-            "hosts": {"hermes": {"peerName": "eri"}},
+            "hosts": {"gpucloud": {"peerName": "eri"}},
         }
-        answers = ["cloud", "", "eri", "hermetika", "hermes"]
+        answers = ["cloud", "", "eri", "hermetika", "gpucloud"]
         host = self._run_setup(monkeypatch, tmp_path, answers=answers, initial_cfg=initial_cfg)
         assert host["pinPeerName"] is False
         # Hybrid materialises the root aliases into the host so subsequent
@@ -513,10 +513,10 @@ class TestSetupWizardDeploymentShape:
         initial_cfg = {
             "apiKey": "***",
             "userPeerAliases": {"baseline": "eri"},
-            "hosts": {"hermes": {"peerName": "eri"}},
+            "hosts": {"gpucloud": {"peerName": "eri"}},
         }
         answers = [
-            "cloud", "", "eri", "hermetika", "hermes",
+            "cloud", "", "eri", "hermetika", "gpucloud",
             "multi",           # explicit multi override of detected hybrid
         ]
         host = self._run_setup(monkeypatch, tmp_path, answers=answers, initial_cfg=initial_cfg)
@@ -531,13 +531,13 @@ class TestSetupWizardDeploymentShape:
         """
         initial_cfg = {
             "apiKey": "***",
-            "hosts": {"hermes": {
+            "hosts": {"gpucloud": {
                 "pinUserPeer": False,
                 "peerName": "eri",
             }},
         }
         answers = [
-            "cloud", "", "eri", "hermetika", "hermes",
+            "cloud", "", "eri", "hermetika", "gpucloud",
             "single",
         ]
         host = self._run_setup(monkeypatch, tmp_path, answers=answers, initial_cfg=initial_cfg)
@@ -557,7 +557,7 @@ class TestCloneCarriesPinUserPeer:
 
         cfg = {
             "apiKey": "***",
-            "hosts": {"hermes": {"pinUserPeer": True, "peerName": "eri"}},
+            "hosts": {"gpucloud": {"pinUserPeer": True, "peerName": "eri"}},
         }
         cfg_path = tmp_path / "config.json"
         cfg_path.write_text("{}")

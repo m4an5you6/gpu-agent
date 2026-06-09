@@ -358,7 +358,7 @@ Or inline: `HF_ENDPOINT=https://hf-mirror.com python script.py`
 
 **Complete conversion script:** See `references/megatron_to_hf_conversion.py` for a ready-to-use script that handles the full Megatron → HF GPT-2 conversion with proper key mapping and torch.distributed initialization.
 
-Source: `/usr/local/lib/hermes-agent/hermes_cli/gpucloud_worker.py` `run_worker_preflight()`
+Source: `/usr/local/lib/gpucloud-agent/gpucloud_cli/gpucloud_worker.py` `run_worker_preflight()`
 
 | Check | What It Validates |
 |-------|-------------------|
@@ -379,7 +379,7 @@ All checks with severity="error" must pass. Warnings are informational.
 
 ## Re-running After Failure
 
-The workflow state is persisted at `~/.hermes/gpucloud/worker_goal_runs/<job_id>.json`. Terminal stages (`training_failed`, `conversion_failed`, `completed`) cause `gpucloud_worker_goal_run` to return immediately without re-running.
+The workflow state is persisted at `~/.gpucloud/gpucloud/worker_goal_runs/<job_id>.json`. Terminal stages (`training_failed`, `conversion_failed`, `completed`) cause `gpucloud_worker_goal_run` to return immediately without re-running.
 
 **Reset by writing a fresh state file** (preferred over deleting — some environments block `rm`):
 ```python

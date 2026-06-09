@@ -25,7 +25,7 @@ description: "像素艺术（NES、Game Boy、PICO-8 时代调色板）"
 ## 参考：完整 SKILL.md
 
 :::info
-以下是 Hermes 在触发此 skill 时加载的完整 skill 定义。这是 skill 激活时 agent 所看到的指令内容。
+以下是 GPUCLOUD 在触发此 skill 时加载的完整 skill 定义。这是 skill 激活时 agent 所看到的指令内容。
 :::
 
 # Pixel Art
@@ -140,7 +140,7 @@ pixel_art("in.png", "out.png", preset="snes", palette="PICO_8", block=6)
 
 ```python
 import sys
-sys.path.insert(0, "/home/teknium/.hermes/skills/creative/pixel-art/scripts")
+sys.path.insert(0, "/home/teknium/.gpucloud/skills/creative/pixel-art/scripts")
 from pixel_art import pixel_art
 from pixel_art_video import pixel_art_video
 
@@ -162,7 +162,7 @@ pixel_art_video(
 ### CLI
 
 ```bash
-cd /home/teknium/.hermes/skills/creative/pixel-art/scripts
+cd /home/teknium/.gpucloud/skills/creative/pixel-art/scripts
 
 python pixel_art.py in.jpg out.png --preset gameboy
 python pixel_art.py in.jpg out.png --preset snes --palette PICO_8 --block 6
@@ -191,7 +191,7 @@ python pixel_art_video.py out.png out.mp4 --scene night --duration 6 --gif
 
 - Python 3.9+
 - Pillow（`pip install Pillow`）
-- PATH 中的 ffmpeg（仅视频需要——Hermes 会安装此包）
+- PATH 中的 ffmpeg（仅视频需要——GPUCLOUD 会安装此包）
 
 ## 注意事项
 

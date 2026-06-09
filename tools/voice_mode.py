@@ -6,7 +6,7 @@ sounddevice or system audio players.
 
 Dependencies (optional):
     pip install sounddevice numpy
-    or: pip install hermes-agent[voice]
+    or: pip install gpucloud-agent[voice]
 """
 
 import logging
@@ -49,7 +49,7 @@ def _audio_available() -> bool:
         return False
 
 
-from hermes_constants import is_termux as _is_termux_environment
+from gpucloud_constants import is_termux as _is_termux_environment
 
 
 def _voice_capture_install_hint() -> str:
@@ -109,7 +109,7 @@ def detect_audio_environment() -> dict:
     # When the user mounts a PulseAudio/PipeWire socket into the container
     # and points PULSE_SERVER / PIPEWIRE_REMOTE at it, audio works fine
     # (issue #21203).  Only block when no forwarding is configured.
-    from hermes_constants import is_container
+    from gpucloud_constants import is_container
     if is_container():
         if has_forwarded_audio:
             notices.append("Running inside container (Docker/Podman/LXC) with host audio forwarding")

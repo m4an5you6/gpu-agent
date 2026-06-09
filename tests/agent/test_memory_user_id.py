@@ -167,7 +167,7 @@ class TestMem0UserIdScoping:
         with patch("plugins.memory.mem0._load_config", return_value={
             "api_key": "test-key",
             "user_id": "hermes-user",
-            "agent_id": "hermes",
+            "agent_id": "gpucloud",
             "rerank": True,
         }):
             provider.initialize(session_id="test-sess", user_id="tg_user_99")
@@ -182,7 +182,7 @@ class TestMem0UserIdScoping:
         with patch("plugins.memory.mem0._load_config", return_value={
             "api_key": "test-key",
             "user_id": "custom-default",
-            "agent_id": "hermes",
+            "agent_id": "gpucloud",
             "rerank": True,
         }):
             provider.initialize(session_id="test-sess")
@@ -196,7 +196,7 @@ class TestMem0UserIdScoping:
         provider = Mem0MemoryProvider()
         with patch("plugins.memory.mem0._load_config", return_value={
             "api_key": "test-key",
-            "agent_id": "hermes",
+            "agent_id": "gpucloud",
             "rerank": True,
         }):
             provider.initialize(session_id="test-sess")
@@ -213,7 +213,7 @@ class TestMem0UserIdScoping:
         with patch("plugins.memory.mem0._load_config", return_value={
             "api_key": "test-key",
             "user_id": "hermes-user",
-            "agent_id": "hermes",
+            "agent_id": "gpucloud",
             "rerank": True,
         }):
             p1.initialize(session_id="sess-1", user_id="alice_123")
@@ -249,7 +249,7 @@ class TestHonchoUserIdScoping:
         mock_cfg.dialectic_depth = 1
         mock_cfg.dialectic_depth_levels = None
         mock_cfg.init_on_session_start = False
-        mock_cfg.ai_peer = "hermes"
+        mock_cfg.ai_peer = "gpucloud"
         mock_cfg.resolve_session_name.return_value = "test-sess"
         mock_cfg.session_strategy = "shared"
 
@@ -280,7 +280,7 @@ class TestHonchoUserIdScoping:
 
         mock_cfg = MagicMock()
         mock_cfg.peer_name = "static-user"
-        mock_cfg.ai_peer = "hermes"
+        mock_cfg.ai_peer = "gpucloud"
         mock_cfg.write_frequency = "sync"
         mock_cfg.dialectic_reasoning_level = "low"
         mock_cfg.dialectic_dynamic = True
@@ -342,7 +342,7 @@ class TestAIAgentUserIdPropagation:
 
     def test_user_id_stored_on_agent(self):
         """AIAgent should store user_id as instance attribute."""
-        with patch.dict(os.environ, {"HERMES_HOME": "/tmp/test_hermes"}):
+        with patch.dict(os.environ, {"GPUCLOUD_HOME": "/tmp/test_gpucloud"}):
             from run_agent import AIAgent
             agent = object.__new__(AIAgent)
             # Manually set the attribute as __init__ does
@@ -351,7 +351,7 @@ class TestAIAgentUserIdPropagation:
 
     def test_user_id_none_by_default(self):
         """AIAgent should have None user_id when not provided (CLI mode)."""
-        with patch.dict(os.environ, {"HERMES_HOME": "/tmp/test_hermes"}):
+        with patch.dict(os.environ, {"GPUCLOUD_HOME": "/tmp/test_gpucloud"}):
             from run_agent import AIAgent
             agent = object.__new__(AIAgent)
             agent._user_id = None
