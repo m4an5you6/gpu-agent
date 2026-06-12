@@ -1,0 +1,12 @@
+name: cluster
+version: 1.0.0
+description: "Temporary master control plane for multi-node distributed training — cluster_* tools, HTTP API, Postgres state, torchrun launch."
+author: NousResearch
+provides_tools:
+  - cluster_status
+  - cluster_validate_config
+  - cluster_submit_job
+  - cluster_job_status
+  - cluster_logs
+  - cluster_stop_job
+  - cluster_node_action

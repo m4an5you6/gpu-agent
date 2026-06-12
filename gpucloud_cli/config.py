@@ -2065,6 +2065,63 @@ DEFAULT_CONFIG = {
         "dispatch_stale_timeout_seconds": 14400,
     },
 
+    # Temporary master control plane for multi-node distributed training.
+    # Workers may be heterogeneous: each node maps logical project/dataset/env
+    # keys to local paths via cluster.node_paths and cluster.conda. HTTP carries
+    # control traffic; NCCL/torchrun carries the training data plane.
+    # Opt in via ``plugins.enabled: [cluster]``.
+    "cluster": {
+        "enabled": False,
+        # master | worker | auto — auto resolves from master_url + bind_port.
+        "role": "auto",
+        "node_id": "",
+        "master_url": "http://127.0.0.1:8765",
+        "bind_host": "127.0.0.1",
+        "bind_port": 8765,
+        # Env var name holding the shared HMAC/bearer secret (see OPTIONAL_ENV_VARS).
+        "secret_env": "GPUCLOUD_CLUSTER_SECRET",
+        "heartbeat_interval_sec": 5,
+        "heartbeat_ttl_sec": 20,
+        "data_dir": "",
+        # Postgres URL for control-plane state. Empty → in-memory store (tests/dev).
+        "database_url": "",
+        "master_epoch": 0,
+        # Gateway session key for queue/guide/interrupt event delivery.
+        "event_session_key": "",
+        "event_routing": {
+            "default": "record",
+            "job_failed": "queue",
+            "node_lost": "guide",
+            "config_mismatch": "interrupt",
+            "job_completed": "queue",
+            "heartbeat": "record",
+        },
+        "logging": {
+            "level": "info",
+            "jsonl": True,
+            "retention_days": 14,
+            "capture_stdout_tail_lines": 200,
+            "capture_stderr_tail_lines": 200,
+        },
+        "training": {
+            "nccl_socket_ifname": "",
+            "rendezvous_port_range": [29500, 29600],
+            "python_executable": "python",
+        },
+        # Per-node logical path mappings for heterogeneous workers. Each worker
+        # resolves project/dataset/checkpoint/scratch keys to local absolute paths.
+        "node_paths": {
+            "code_roots": {},
+            "data_roots": {},
+            "checkpoint_roots": {},
+            "scratch_roots": {},
+        },
+        # Logical conda env name -> local prefix or python path on this node.
+        "conda": {
+            "envs": {},
+        },
+    },
+
     # execute_code settings — controls the tool used for programmatic tool calls.
     "code_execution": {
         # Execution mode:
@@ -2863,6 +2920,19 @@ OPTIONAL_ENV_VARS = {
     },
 
     # ── Tool API keys ──
+    "GPUCLOUD_CLUSTER_SECRET": {
+        "description": "Shared secret for cluster control-plane HTTP auth (HMAC/bearer)",
+        "prompt": "Cluster control-plane secret",
+        "url": None,
+        "password": True,
+        "tools": [
+            "cluster_status", "cluster_validate_config", "cluster_submit_job",
+            "cluster_job_status", "cluster_logs", "cluster_stop_job",
+            "cluster_node_action",
+        ],
+        "category": "tool",
+        "advanced": True,
+    },
     "EXA_API_KEY": {
         "description": "Exa API key for AI-native web search and contents",
         "prompt": "Exa API key",
