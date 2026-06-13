@@ -672,7 +672,7 @@ def _get_browser_engine() -> str:
             _cached_browser_engine = env_val
 
     # Validate: agent-browser only accepts "chrome" and "lightpanda".
-    _VALID_ENGINES = {"auto", "lightpanda", "chrome"}
+    _VALID_ENGINES = {"auto", "lightpanda", "chrome", "none"}
     if _cached_browser_engine not in _VALID_ENGINES:
         logger.warning(
             "Unknown browser engine %r (valid: %s), falling back to 'auto'",
@@ -3666,6 +3666,10 @@ def check_browser_requirements() -> bool:
     Returns:
         True if all requirements are met, False otherwise
     """
+    # If browser engine is explicitly disabled ("none"), skip all checks
+    if _get_browser_engine() == "none":
+        return False
+
     # Camofox backend — only needs the server URL, no agent-browser CLI
     if _is_camofox_mode():
         return True

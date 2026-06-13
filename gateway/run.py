@@ -6703,6 +6703,12 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                     return await self._handle_goal_command(event)
                 return "Agent is running — use /goal status / pause / clear mid-run, or /stop before setting a new goal."
 
+            if _cmd_def_inner and _cmd_def_inner.name == "autogoal":
+                _autogoal_arg = (event.get_command_args() or "").strip().lower()
+                if not _autogoal_arg or _autogoal_arg in {"status", "pause", "resume", "clear", "stop", "done"}:
+                    return await self._handle_autogoal_command(event)
+                return "Agent is running — use /autogoal status / pause / clear mid-run, or /stop before setting a new autogoal."
+
             # /subgoal is safe mid-run — it only modifies the goal's
             # subgoals list, which the judge reads at the next turn
             # boundary. No race with the running turn.
@@ -7135,6 +7141,9 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
 
         if canonical == "goal":
             return await self._handle_goal_command(event)
+
+        if canonical == "autogoal":
+            return await self._handle_autogoal_command(event)
 
         if canonical == "subgoal":
             return await self._handle_subgoal_command(event)
@@ -9236,6 +9245,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         """
         try:
             from gpucloud_cli.goals import GoalManager
+            from gpucloud_cli.autogoals import AutoGoalManager, DEFAULT_AUTOGOAL_MAX_TURNS
         except Exception as exc:
             logger.debug("goal continuation: goals module unavailable: %s", exc)
             return
@@ -9247,6 +9257,19 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         max_turns = self._goal_max_turns_from_config()
 
         mgr = GoalManager(session_id=sid, default_max_turns=max_turns)
+        if not mgr.is_active():
+            try:
+                from gpucloud_cli.config import load_config
+
+                cfg = load_config() or {}
+                autogoals_cfg = cfg.get("autogoals") or {}
+                auto_max_turns = int(
+                    autogoals_cfg.get("max_turns", DEFAULT_AUTOGOAL_MAX_TURNS)
+                    or DEFAULT_AUTOGOAL_MAX_TURNS
+                )
+            except Exception:
+                auto_max_turns = DEFAULT_AUTOGOAL_MAX_TURNS
+            mgr = AutoGoalManager(session_id=sid, default_max_turns=auto_max_turns)
         if not mgr.is_active():
             return
 

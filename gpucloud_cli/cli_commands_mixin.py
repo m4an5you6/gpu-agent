@@ -1769,6 +1769,69 @@ class CLICommandsMixin:
         except Exception:
             pass
 
+    def _handle_autogoal_command(self, cmd: str) -> None:
+        """Dispatch /autogoal subcommands for non-interactive ML automation."""
+        from cli import _DIM, _RST, _cprint
+        parts = (cmd or "").strip().split(None, 1)
+        arg = parts[1].strip() if len(parts) > 1 else ""
+
+        mgr = self._get_autogoal_manager()
+        if mgr is None:
+            _cprint(f"  {_DIM}AutoGoals unavailable (no active session).{_RST}")
+            return
+
+        lower = arg.lower()
+        if not arg or lower == "status":
+            _cprint(f"  {mgr.status_line()}")
+            return
+
+        if lower == "pause":
+            state = mgr.pause(reason="user-paused")
+            if state is None:
+                _cprint(f"  {_DIM}No autogoal set.{_RST}")
+            else:
+                _cprint(f"  ⏸ AutoGoal paused: {state.goal}")
+            return
+
+        if lower == "resume":
+            state = mgr.resume()
+            if state is None:
+                _cprint(f"  {_DIM}No autogoal to resume.{_RST}")
+            else:
+                _cprint(f"  ▶ AutoGoal resumed: {state.goal}")
+                _cprint(
+                    f"  {_DIM}AutoGoal will continue autonomously; it will self-audit "
+                    f"rather than ask for clarification or confirmation.{_RST}"
+                )
+            return
+
+        if lower in {"clear", "stop", "done"}:
+            had = mgr.has_autogoal()
+            mgr.clear()
+            if had:
+                _cprint("  ✓ AutoGoal cleared.")
+            else:
+                _cprint(f"  {_DIM}No active autogoal.{_RST}")
+            return
+
+        try:
+            state = mgr.set(arg)
+        except ValueError as exc:
+            _cprint(f"  Invalid autogoal: {exc}")
+            return
+
+        _cprint(f"  ⊙ AutoGoal set ({state.max_turns}-turn budget): {state.goal}")
+        if state.config_warnings:
+            _cprint(f"  {_DIM}Config warnings: {'; '.join(state.config_warnings)}{_RST}")
+        _cprint(
+            f"  {_DIM}AutoGoal is non-interactive: it will discover, choose conservative "
+            f"defaults, self-audit, and block itself if unsafe.{_RST}"
+        )
+        try:
+            self._pending_input.put(mgr.kickoff_prompt())
+        except Exception:
+            pass
+
     def _handle_subgoal_command(self, cmd: str) -> None:
         """Dispatch /subgoal subcommands.
 

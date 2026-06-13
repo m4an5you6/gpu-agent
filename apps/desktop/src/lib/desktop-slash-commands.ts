@@ -28,6 +28,7 @@ const DESKTOP_COMMAND_META = [
   ['/branch', 'Branch the latest message into a new chat'],
   ['/compress', 'Compress this conversation context'],
   ['/debug', 'Create a debug report'],
+  ['/autogoal', 'Run a non-interactive ML automation loop'],
   ['/goal', 'Manage the standing goal for this session'],
   ['/help', 'Show desktop slash commands'],
   ['/new', 'Start a new desktop chat'],

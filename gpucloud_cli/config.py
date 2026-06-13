@@ -1726,6 +1726,16 @@ DEFAULT_CONFIG = {
         "max_turns": 20,
     },
 
+    # AutoGoals — non-interactive training/inference/deployment loops.
+    # /autogoal only consumes the first user objective; follow-up turns must
+    # self-audit, choose conservative defaults, or block instead of asking
+    # the user for clarification. Keep a larger budget than /goal because ML
+    # service automation often spans discovery, preflight, dry-run, launch,
+    # monitoring, and repair.
+    "autogoals": {
+        "max_turns": 200,
+    },
+
     # Skills — external skill directories for sharing skills across tools/agents.
     # Each path is expanded (~, ${VAR}) and resolved.  Read-only — skill creation
     # always goes to ~/.gpucloud/skills/.

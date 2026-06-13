@@ -200,3 +200,39 @@ def test_pending_input_commands_includes_goal(server):
     """Guard: _PENDING_INPUT_COMMANDS must list 'goal' — removing it would
     silently re-break the TUI."""
     assert "goal" in server._PENDING_INPUT_COMMANDS
+
+
+def test_autogoal_set_returns_send_with_noninteractive_notice(server, session):
+    sid, session_key, _ = session
+    r = _call(
+        server,
+        "command.dispatch",
+        name="autogoal",
+        arg="train and deploy on available GPUs",
+        session_id=sid,
+    )
+    result = r["result"]
+    assert result["type"] == "send"
+    assert "AutoGoal set" in result["notice"]
+    assert "non-interactive" in result["notice"]
+    assert "Do not ask the user questions" in result["message"]
+    assert "decision_record" in result["message"]
+
+    from gpucloud_cli.autogoals import AutoGoalManager
+
+    mgr = AutoGoalManager(session_key)
+    assert mgr.state is not None
+    assert mgr.state.goal == "train and deploy on available GPUs"
+    assert mgr.state.status == "active"
+
+
+def test_slash_exec_rejects_autogoal_routes_to_command_dispatch(server, session):
+    sid, _, _ = session
+    r = _call(server, "slash.exec", command="autogoal status", session_id=sid)
+    assert "error" in r
+    assert r["error"]["code"] == 4018
+    assert "command.dispatch" in r["error"]["message"]
+
+
+def test_pending_input_commands_includes_autogoal(server):
+    assert "autogoal" in server._PENDING_INPUT_COMMANDS

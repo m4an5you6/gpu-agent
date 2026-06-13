@@ -18,6 +18,8 @@ describe('desktop slash command curation', () => {
     expect(isDesktopSlashSuggestion('/usage')).toBe(true)
     expect(isDesktopSlashSuggestion('/version')).toBe(true)
     expect(isDesktopSlashSuggestion('/yolo')).toBe(true)
+    expect(isDesktopSlashSuggestion('/autogoal')).toBe(true)
+    expect(isDesktopSlashCommand('/autogoal')).toBe(true)
     expect(isDesktopSlashCommand('/yolo')).toBe(true)
   })
 

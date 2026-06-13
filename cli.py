@@ -7370,6 +7370,8 @@ class GPUCLOUDCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 _cprint(f"  No agent running; queued as next turn: {payload[:80]}{'...' if len(payload) > 80 else ''}")
         elif canonical == "goal":
             self._handle_goal_command(cmd_original)
+        elif canonical == "autogoal":
+            self._handle_autogoal_command(cmd_original)
         elif canonical == "subgoal":
             self._handle_subgoal_command(cmd_original)
         elif canonical == "skin":
@@ -7566,6 +7568,34 @@ class GPUCLOUDCLI(CLIAgentSetupMixin, CLICommandsMixin):
         self._goal_manager = mgr
         return mgr
 
+    def _get_autogoal_manager(self):
+        """Return the AutoGoalManager bound to the current session_id."""
+        try:
+            from gpucloud_cli.autogoals import AutoGoalManager, DEFAULT_AUTOGOAL_MAX_TURNS
+            from gpucloud_cli.config import load_config
+        except Exception as exc:
+            logging.debug("autogoal manager unavailable: %s", exc)
+            return None
+
+        sid = getattr(self, "session_id", None) or ""
+        if not sid:
+            return None
+
+        existing = getattr(self, "_autogoal_manager", None)
+        if existing is not None and getattr(existing, "session_id", None) == sid:
+            return existing
+
+        try:
+            cfg = load_config() or {}
+            autogoals_cfg = cfg.get("autogoals") or {}
+            max_turns = int(autogoals_cfg.get("max_turns", DEFAULT_AUTOGOAL_MAX_TURNS) or DEFAULT_AUTOGOAL_MAX_TURNS)
+        except Exception:
+            max_turns = DEFAULT_AUTOGOAL_MAX_TURNS
+
+        mgr = AutoGoalManager(session_id=sid, default_max_turns=max_turns)
+        self._autogoal_manager = mgr
+        return mgr
+
 
 
     def _maybe_continue_goal_after_turn(self) -> None:
@@ -7589,6 +7619,10 @@ class GPUCLOUDCLI(CLIAgentSetupMixin, CLICommandsMixin):
         ``_handle_message`` in ``gateway/run.py``.
         """
         mgr = self._get_goal_manager()
+        command_label = "goal"
+        if mgr is None or not mgr.is_active():
+            mgr = self._get_autogoal_manager()
+            command_label = "autogoal"
         if mgr is None or not mgr.is_active():
             return
 
@@ -7638,8 +7672,8 @@ class GPUCLOUDCLI(CLIAgentSetupMixin, CLICommandsMixin):
             except Exception as exc:
                 logging.debug("goal pause-on-interrupt failed: %s", exc)
             _cprint(
-                f"  {_DIM}⏸ Goal paused — turn was interrupted. "
-                f"Use /goal resume to continue, or /goal clear to stop.{_RST}"
+                f"  {_DIM}⏸ {command_label.title()} paused — turn was interrupted. "
+                f"Use /{command_label} resume to continue, or /{command_label} clear to stop.{_RST}"
             )
             return
 

@@ -5093,6 +5093,7 @@ def _run_prompt_submit(rid, sid: str, session: dict, text: Any) -> None:
             if status == "complete" and isinstance(raw, str) and raw.strip():
                 try:
                     from gpucloud_cli.goals import GoalManager
+                    from gpucloud_cli.autogoals import AutoGoalManager, DEFAULT_AUTOGOAL_MAX_TURNS
 
                     sid_key = session.get("session_key") or ""
                     if sid_key:
@@ -5105,8 +5106,24 @@ def _run_prompt_submit(rid, sid: str, session: dict, text: Any) -> None:
                             session_id=sid_key,
                             default_max_turns=goal_max_turns,
                         )
-                        if goal_mgr.is_active():
-                            decision = goal_mgr.evaluate_after_turn(
+                        mgr = goal_mgr
+                        status_kind = "goal"
+                        if not mgr.is_active():
+                            try:
+                                autogoals_cfg = _load_cfg().get("autogoals") or {}
+                                auto_max_turns = int(
+                                    autogoals_cfg.get("max_turns", DEFAULT_AUTOGOAL_MAX_TURNS)
+                                    or DEFAULT_AUTOGOAL_MAX_TURNS
+                                )
+                            except Exception:
+                                auto_max_turns = DEFAULT_AUTOGOAL_MAX_TURNS
+                            mgr = AutoGoalManager(
+                                session_id=sid_key,
+                                default_max_turns=auto_max_turns,
+                            )
+                            status_kind = "autogoal"
+                        if mgr.is_active():
+                            decision = mgr.evaluate_after_turn(
                                 raw,
                                 user_initiated=True,
                             )
@@ -5115,7 +5132,7 @@ def _run_prompt_submit(rid, sid: str, session: dict, text: Any) -> None:
                                 _emit(
                                     "status.update",
                                     sid,
-                                    {"kind": "goal", "text": verdict_msg},
+                                    {"kind": status_kind, "text": verdict_msg},
                                 )
                             if decision.get("should_continue"):
                                 cont_prompt = decision.get("continuation_prompt") or ""
@@ -6924,6 +6941,7 @@ _PENDING_INPUT_COMMANDS: frozenset[str] = frozenset(
         "steer",
         "plan",
         "goal",
+        "autogoal",
         "undo",
     }
 )
@@ -7240,6 +7258,78 @@ def _(rid, params: dict) -> dict:
                 pass
         # Fallback: no active run, treat as next-turn message
         return _ok(rid, {"type": "send", "message": arg})
+
+    if name == "autogoal":
+        if not session:
+            return _err(rid, 4001, "no active session")
+        try:
+            from gpucloud_cli.autogoals import AutoGoalManager, DEFAULT_AUTOGOAL_MAX_TURNS
+        except Exception as exc:
+            return _err(rid, 5030, f"autogoals unavailable: {exc}")
+
+        sid_key = session.get("session_key") or ""
+        if not sid_key:
+            return _err(rid, 4001, "no session key")
+
+        try:
+            autogoals_cfg = _load_cfg().get("autogoals") or {}
+            max_turns = int(
+                autogoals_cfg.get("max_turns", DEFAULT_AUTOGOAL_MAX_TURNS)
+                or DEFAULT_AUTOGOAL_MAX_TURNS
+            )
+        except Exception:
+            max_turns = DEFAULT_AUTOGOAL_MAX_TURNS
+        mgr = AutoGoalManager(session_id=sid_key, default_max_turns=max_turns)
+
+        lower = arg.strip().lower()
+        if not arg.strip() or lower == "status":
+            return _ok(rid, {"type": "exec", "output": mgr.status_line()})
+        if lower == "pause":
+            state = mgr.pause(reason="user-paused")
+            out = "No autogoal set." if state is None else f"⏸ AutoGoal paused: {state.goal}"
+            return _ok(rid, {"type": "exec", "output": out})
+        if lower == "resume":
+            state = mgr.resume()
+            if state is None:
+                return _ok(rid, {"type": "exec", "output": "No autogoal to resume."})
+            return _ok(
+                rid,
+                {
+                    "type": "exec",
+                    "output": (
+                        f"▶ AutoGoal resumed: {state.goal}\n"
+                        "AutoGoal continues autonomously; it self-audits instead of asking questions."
+                    ),
+                },
+            )
+        if lower in {"clear", "stop", "done"}:
+            had = mgr.has_autogoal()
+            mgr.clear()
+            return _ok(
+                rid,
+                {
+                    "type": "exec",
+                    "output": "✓ AutoGoal cleared." if had else "No active autogoal.",
+                },
+            )
+
+        try:
+            state = mgr.set(arg)
+        except ValueError as exc:
+            return _err(rid, 4004, f"invalid autogoal: {exc}")
+
+        notice = (
+            f"⊙ AutoGoal set ({state.max_turns}-turn budget): {state.goal}\n"
+            "AutoGoal is non-interactive: it will discover, choose conservative defaults, "
+            "self-audit, and block itself if unsafe.\n"
+            "Controls: /autogoal status · /autogoal pause · /autogoal resume · /autogoal clear"
+        )
+        if state.config_warnings:
+            notice += "\nConfig warnings: " + "; ".join(state.config_warnings)
+        return _ok(
+            rid,
+            {"type": "send", "notice": notice, "message": mgr.kickoff_prompt()},
+        )
 
     if name == "goal":
         if not session:

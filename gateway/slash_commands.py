@@ -1518,6 +1518,95 @@ class GatewaySlashCommandsMixin:
 
         return t("gateway.goal.set", budget=state.max_turns, goal=state.goal)
 
+    async def _handle_autogoal_command(self, event: "MessageEvent") -> str:
+        """Handle /autogoal for gateway platforms.
+
+        AutoGoal is non-interactive: it accepts the initial objective, queues a
+        kickoff prompt, and then advances through its own post-turn loop.
+        """
+        args = (event.get_command_args() or "").strip()
+        lower = args.lower()
+
+        try:
+            from gpucloud_cli.autogoals import AutoGoalManager, DEFAULT_AUTOGOAL_MAX_TURNS
+            from gpucloud_cli.config import load_config
+        except Exception as exc:
+            return f"AutoGoals unavailable: {exc}"
+
+        try:
+            session_entry = self.session_store.get_or_create_session(event.source)
+        except Exception:
+            return "AutoGoals unavailable (no active session)."
+        sid = getattr(session_entry, "session_id", None) or ""
+        if not sid:
+            return "AutoGoals unavailable (no active session)."
+
+        try:
+            cfg = load_config() or {}
+            autogoals_cfg = cfg.get("autogoals") or {}
+            max_turns = int(
+                autogoals_cfg.get("max_turns", DEFAULT_AUTOGOAL_MAX_TURNS)
+                or DEFAULT_AUTOGOAL_MAX_TURNS
+            )
+        except Exception:
+            max_turns = DEFAULT_AUTOGOAL_MAX_TURNS
+
+        mgr = AutoGoalManager(session_id=sid, default_max_turns=max_turns)
+
+        if not args or lower == "status":
+            return mgr.status_line()
+
+        if lower == "pause":
+            state = mgr.pause(reason="user-paused")
+            return "No autogoal set." if state is None else f"⏸ AutoGoal paused: {state.goal}"
+
+        if lower == "resume":
+            state = mgr.resume()
+            if state is None:
+                return "No autogoal to resume."
+            return f"▶ AutoGoal resumed: {state.goal}"
+
+        if lower in {"clear", "stop", "done"}:
+            had = mgr.has_autogoal()
+            mgr.clear()
+            try:
+                adapter = self.adapters.get(event.source.platform) if event.source else None
+                _quick_key = self._session_key_for_source(event.source) if event.source else None
+                if adapter and _quick_key:
+                    self._clear_goal_pending_continuations(_quick_key, adapter)
+            except Exception as exc:
+                logger.debug("autogoal clear: pending continuation cleanup failed: %s", exc)
+            return "✓ AutoGoal cleared." if had else "No active autogoal."
+
+        try:
+            state = mgr.set(args)
+        except ValueError as exc:
+            return f"Invalid autogoal: {exc}"
+
+        adapter = self.adapters.get(event.source.platform) if event.source else None
+        _quick_key = self._session_key_for_source(event.source) if event.source else None
+        if adapter and _quick_key:
+            try:
+                kickoff_event = MessageEvent(
+                    text=mgr.kickoff_prompt(),
+                    message_type=MessageType.TEXT,
+                    source=event.source,
+                    message_id=event.message_id,
+                    channel_prompt=event.channel_prompt,
+                )
+                self._enqueue_fifo(_quick_key, kickoff_event, adapter)
+            except Exception as exc:
+                logger.debug("autogoal kickoff enqueue failed: %s", exc)
+
+        warning = ""
+        if state.config_warnings:
+            warning = "\nConfig warnings: " + "; ".join(state.config_warnings)
+        return (
+            f"⊙ AutoGoal set ({state.max_turns}-turn budget): {state.goal}\n"
+            "AutoGoal is non-interactive: it will discover, self-audit, proceed if safe, "
+            f"or block itself if unsafe.{warning}"
+        )
+
     async def _handle_subgoal_command(self, event: "MessageEvent") -> str:
         """Handle /subgoal for gateway platforms (mirror of CLI handler).
 

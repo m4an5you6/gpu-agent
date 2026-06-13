@@ -21,6 +21,8 @@ Use `/goal` for tasks where you want GPUCLOUD to iterate on its own without you 
 
 Tasks where the agent does one turn and stops don't need `/goal`. Tasks where *you'd otherwise have to say "keep going" three times* are where this shines.
 
+For non-interactive training, inference, deployment, multi-GPU, or multi-node service automation, use `/autogoal` instead. `/goal` is intentionally the plain Ralph loop: it does not inspect `gpucloud.yaml`, does not classify ML keywords, and does not inject training/deployment context.
+
 ## Quick start
 
 ```

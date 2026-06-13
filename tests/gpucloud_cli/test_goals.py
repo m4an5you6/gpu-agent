@@ -348,14 +348,63 @@ def test_goal_command_in_registry():
     assert cmd is not None
     assert cmd.name == "goal"
 
+    autogoal = resolve_command("autogoal")
+    assert autogoal is not None
+    assert autogoal.name == "autogoal"
+
 
 def test_goal_command_dispatches_in_cli_registry_helpers():
     """goal shows up in autocomplete / help categories alongside other Session cmds."""
     from gpucloud_cli.commands import COMMANDS, COMMANDS_BY_CATEGORY
 
     assert "/goal" in COMMANDS
+    assert "/autogoal" in COMMANDS
     session_cmds = COMMANDS_BY_CATEGORY.get("Session", {})
     assert "/goal" in session_cmds
+    assert "/autogoal" in session_cmds
+
+
+def test_goal_with_ml_words_stays_plain_goal(gpucloud_home):
+    """Plain /goal must not trigger gpucloud.yaml validation by keyword."""
+    from gpucloud_cli.goals import GoalManager
+
+    mgr = GoalManager(session_id="plain-goal-ml-words")
+    state = mgr.set("deploy api for training without gpucloud yaml")
+
+    assert state.goal == "deploy api for training without gpucloud yaml"
+    assert state.status == "active"
+
+
+def test_autogoal_without_gpucloud_yaml_starts_with_warning(gpucloud_home, monkeypatch):
+    from gpucloud_cli.autogoals import AutoGoalManager
+
+    monkeypatch.chdir(gpucloud_home.parent)
+    mgr = AutoGoalManager(session_id="autogoal-no-yaml")
+    state = mgr.set("train and deploy across all available GPUs")
+
+    assert state.status == "active"
+    assert any("not found" in warning for warning in state.config_warnings)
+    prompt = mgr.kickoff_prompt()
+    assert "Do not ask the user questions" in prompt
+    assert "decision_record" in prompt
+    assert "No gpucloud.yaml found" in prompt
+
+
+def test_autogoal_incomplete_gpucloud_yaml_warns_not_rejects(gpucloud_home, monkeypatch):
+    from gpucloud_cli.autogoals import AutoGoalManager
+
+    workdir = gpucloud_home.parent
+    (workdir / "gpucloud.yaml").write_text("clusters: []\n", encoding="utf-8")
+    monkeypatch.chdir(workdir)
+
+    mgr = AutoGoalManager(session_id="autogoal-incomplete-yaml")
+    state = mgr.set("serve the model on every detected GPU")
+
+    assert state.status == "active"
+    assert any("missing recommended fields" in warning for warning in state.config_warnings)
+    prompt = mgr.kickoff_prompt()
+    assert "warnings" in prompt
+    assert "Do not ask the user questions" in prompt
 
 
 # ──────────────────────────────────────────────────────────────────────
