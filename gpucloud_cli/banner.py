@@ -1,6 +1,6 @@
 """Welcome banner, ASCII art, skills summary, and update check for the CLI.
 
-Pure display functions with no GPUCLOUDCLI state dependency.
+Pure display functions with no GPUCLOUD CLI state dependency.
 """
 
 import json
@@ -12,16 +12,14 @@ import threading
 import time
 from pathlib import Path
 from gpucloud_constants import get_gpucloud_home
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import Dict, List, Optional
 
-# rich and prompt_toolkit are imported lazily (inside the functions that use
-# them) rather than at module level.  Importing this module is on the TUI
-# gateway's critical startup path purely to reach the lightweight update-check
-# helpers (``prefetch_update_check``); pulling rich.console + prompt_toolkit
-# eagerly added ~50ms of wasted imports before ``gateway.ready`` could fire.
-# Keep the type-only reference available to checkers without the runtime cost.
-if TYPE_CHECKING:
-    from rich.console import Console
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
+from prompt_toolkit import print_formatted_text as _pt_print
+from prompt_toolkit.formatted_text import ANSI as _PT_ANSI
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +28,7 @@ logger = logging.getLogger(__name__)
 # ANSI building blocks for conversation display
 # =========================================================================
 
-_GOLD = "\033[1;38;2;255;215;0m"  # True-color #FFD700 bold
+_GOLD = "\033[1;38;2;56;189;248m"  # True-color #38BDF8 bold
 _BOLD = "\033[1m"
 _DIM = "\033[2m"
 _RST = "\033[0m"
@@ -38,8 +36,6 @@ _RST = "\033[0m"
 
 def cprint(text: str):
     """Print ANSI-colored text through prompt_toolkit's renderer."""
-    from prompt_toolkit import print_formatted_text as _pt_print
-    from prompt_toolkit.formatted_text import ANSI as _PT_ANSI
     _pt_print(_PT_ANSI(text))
 
 
@@ -54,34 +50,36 @@ def _skin_color(key: str, fallback: str) -> str:
         return get_active_skin().get_color(key, fallback)
     except Exception:
         return fallback
+
+
+def _skin_branding(key: str, fallback: str) -> str:
+    """Get a branding string from the active skin, or return fallback."""
+    try:
+        from gpucloud_cli.skin_engine import get_active_skin
+        return get_active_skin().get_branding(key, fallback)
+    except Exception:
+        return fallback
+
+
 # =========================================================================
 # ASCII Art & Branding
 # =========================================================================
 
 from gpucloud_cli import __version__ as VERSION, __release_date__ as RELEASE_DATE
 
-GPUCLOUD_AGENT_LOGO = """[bold #FFD700] ██████╗ ██████╗ ██╗   ██╗ ██████╗██╗      ██████╗ ██╗   ██╗██████╗ [/]
-[bold #FFD700]██╔════╝ ██╔══██╗██║   ██║██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗[/]
-[#FFBF00]██║  ███╗██████╔╝██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║[/]
-[#FFBF00]██║   ██║██╔══██╗██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║[/]
-[#CD7F32]╚██████╔╝██║  ██║╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝[/]
-[#CD7F32] ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝ [/]"""
+GPUCLOUD_AGENT_LOGO = """[bold #38BDF8] ██████╗ ██████╗ ██╗   ██╗ ██████╗██╗      ██████╗ ██╗   ██╗██████╗ [/]
+[#2563EB]██╔════╝ ██╔══██╗██║   ██║██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗[/]
+[#2563EB]██║  ███╗██████╔╝██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║[/]
+[#38BDF8]██║   ██║██╔═══╝ ██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║[/]
+[#14B8A6]╚██████╔╝██║     ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝[/]
+[#14B8A6] ╚═════╝ ╚═╝      ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝ [/]
+[dim #94A3B8]                    GPUCLOUD AGENT[/]"""
 
-GPUCLOUD_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀[/]
-[#FFBF00]⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]"""
+GPUCLOUD_CADUCEUS = """[bold #38BDF8]      .-------- GPUCLOUD --------.[/]
+[#2563EB]   .------.     SSH GPU Cluster     .------.[/]
+[#38BDF8]  /  GPU  \\==== TRAIN / INFER ==== /  GPU  \\[/]
+[#14B8A6]  \\______/     CUDA · NCCL · vLLM   \\______/[/]
+[dim #94A3B8]        YAML driven remote ML operations[/]"""
 
 
 
@@ -225,30 +223,7 @@ def check_for_updates() -> Optional[int]:
     cache_file = gpucloud_home / ".update_check"
     embedded_rev = os.environ.get("GPUCLOUD_REVISION") or None
 
-    # Docker images have no working tree to count commits against — the
-    # published image excludes `.git` (see .dockerignore) and sets no
-    # GPUCLOUD_REVISION (that's nix-only). Without this guard the checks below
-    # fall through to `check_via_pypi()`, whose PyPI-version mismatch flag (1)
-    # then gets rendered by the CLI banner and the TUI badge as a phantom
-    # "1 commit behind" — even though no git repo or commit math is involved,
-    # and `gpucloud update` correctly refuses to run in-place inside the
-    # container anyway. The dashboard's REST `/api/gpucloud/update/check`
-    # endpoint already short-circuits docker the same way (web_server.py);
-    # mirror that here so the banner/TUI surfaces agree. Returning None makes
-    # both the Rich banner (build_welcome_banner) and the Ink badge
-    # (branding.tsx, guarded on `typeof === 'number' && > 0`) show nothing.
-    try:
-        from gpucloud_cli.config import detect_install_method
-        if detect_install_method() == "docker":
-            return None
-    except Exception:
-        pass
-
-    # Read cache — invalidate if the embedded rev OR installed version has
-    # changed since the last check. The version guard matters for pip installs:
-    # `check_via_pypi()` compares against VERSION, so a `pip install --upgrade`
-    # changes VERSION but leaves rev unchanged (both None), and without this
-    # the stale "behind" count would survive the upgrade for up to 6h. See #34491.
+    # Read cache — invalidate if the embedded rev has changed since last check
     now = time.time()
     try:
         if cache_file.exists():
@@ -256,7 +231,6 @@ def check_for_updates() -> Optional[int]:
             if (
                 now - cached.get("ts", 0) < _UPDATE_CHECK_CACHE_SECONDS
                 and cached.get("rev") == embedded_rev
-                and cached.get("ver") == VERSION
             ):
                 return cached.get("behind")
     except Exception:
@@ -277,9 +251,7 @@ def check_for_updates() -> Optional[int]:
             behind = _check_via_local_git(repo_dir)
 
     try:
-        cache_file.write_text(
-            json.dumps({"ts": now, "behind": behind, "rev": embedded_rev, "ver": VERSION})
-        )
+        cache_file.write_text(json.dumps({"ts": now, "behind": behind, "rev": embedded_rev}))
     except Exception:
         pass
 
@@ -494,7 +466,7 @@ def _display_toolset_name(toolset_name: str) -> str:
     )
 
 
-def build_welcome_banner(console: "Console", model: str, cwd: str,
+def build_welcome_banner(console: Console, model: str, cwd: str,
                          tools: List[dict] = None,
                          enabled_toolsets: List[str] = None,
                          session_id: str = None,
@@ -513,8 +485,6 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         context_length: Model's context window size in tokens.
     """
     from model_tools import check_tool_availability, TOOLSET_REQUIREMENTS
-    from rich.panel import Panel
-    from rich.table import Table
     if get_toolset_for_tool is None:
         from model_tools import get_toolset_for_tool
 
@@ -561,7 +531,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     if len(model_short) > 28:
         model_short = model_short[:25] + "..."
     ctx_str = f" [dim {dim}]·[/] [dim {dim}]{_format_context_length(context_length)} context[/]" if context_length else ""
-    left_lines.append(f"[{accent}]{model_short}[/]{ctx_str} [dim {dim}]·[/] [dim {dim}]Nous Research[/]")
+    left_lines.append(f"[{accent}]{model_short}[/]{ctx_str} [dim {dim}]·[/] [dim {dim}]GPUCLOUD[/]")
 
     if os.getenv("GPUCLOUD_YOLO_MODE"):
         left_lines.append(f"[bold red]⚠ YOLO mode[/] [dim {dim}]— all approval prompts bypassed[/]")
@@ -645,11 +615,6 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
                     f"[dim {dim}]{srv['name']}[/] [{text}]({srv['transport']})[/] "
                     f"[dim {dim}]—[/] [{text}]{srv['tools']} tool(s)[/]"
                 )
-            elif srv.get("disabled"):
-                right_lines.append(
-                    f"[dim {dim}]{srv['name']}[/] [dim]({srv['transport']})[/] "
-                    f"[dim {dim}]— disabled[/]"
-                )
             else:
                 right_lines.append(
                     f"[red]{srv['name']}[/] [dim]({srv['transport']})[/] "
@@ -717,7 +682,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
                     f"[dim yellow] — run [bold]{recommended_update_command()}[/bold] to update[/]"
                 )
             else:
-                # UPDATE_AVAILABLE_NO_COUNT: nix-built gpucloud; we know an update
+                # UPDATE_AVAILABLE_NO_COUNT: nix-built hermes; we know an update
                 # exists but not by how much, and we don't know how the user
                 # installed it (nix run, profile, system flake, home-manager).
                 managed_cmd = get_managed_update_command()
@@ -727,21 +692,6 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
                 right_lines.append(line)
     except Exception:
         pass  # Never break the banner over an update check
-
-    # Pip-install warning — `pip install gpucloud-agent` is not the supported
-    # install path (it exists on PyPI for internal/CI reasons, not end users).
-    # Such installs miss the git checkout + installer-managed deps, so updates,
-    # self-update, and issue triage don't behave correctly. Warn, don't block.
-    try:
-        from gpucloud_cli.config import detect_install_method
-        if detect_install_method() == "pip":
-            right_lines.append(
-                "[bold yellow]⚠ pip install not officially supported[/]"
-                "[dim yellow] — exists for reasons other than user install; "
-                "expect instability and an inability to support issues[/]"
-            )
-    except Exception:
-        pass  # Never break the banner over the install-method check
 
     right_content = "\n".join(right_lines)
     layout_table.add_row(left_content, right_content)
